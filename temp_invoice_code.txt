@@ -1,0 +1,207 @@
+  const generateSellerInvoice = async (order: any) => {
+    // Create a temporary div for the invoice
+    const invoiceDiv = document.createElement('div');
+    invoiceDiv.style.position = 'absolute';
+    invoiceDiv.style.left = '-9999px';
+    invoiceDiv.style.top = '0';
+    invoiceDiv.style.width = '794px'; // A4 width optimized for single page
+    invoiceDiv.style.padding = '0';
+    invoiceDiv.style.margin = '0';
+    invoiceDiv.style.backgroundColor = '#FFFFFF';
+    invoiceDiv.style.fontFamily = 'Arial, sans-serif';
+    invoiceDiv.style.color = '#000000';
+
+    const today = new Date().toLocaleDateString('en-IN', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+
+    const invoiceNumber = `INV-${order.id.replace('ORD', '')}`;
+
+    // Calculate platform commission (assuming 10% commission)
+    const platformCommission = Math.round(order.total * 0.1);
+    const sellerPayout = order.total - platformCommission;
+
+    invoiceDiv.innerHTML = `
+      <div style="background: #FFFFFF; width: 794px; font-family: Arial, sans-serif;">
+        
+        <!-- Header with Gradient -->
+        <div style="background: linear-gradient(135deg, #8B4513 0%, #D2691E 100%); padding: 24px 40px; text-align: center;">
+          <h1 style="color: white; font-size: 36px; font-weight: 700; margin: 0 0 4px 0; letter-spacing: 3px; font-family: Georgia, serif;">BOI PARA</h1>
+          <p style="color: #FDE68A; font-size: 10px; letter-spacing: 2.5px; margin: 0;">COLLEGE STREET • KOLKATA</p>
+          <div style="width: 100px; height: 3px; background: #FCD34D; margin: 12px auto 0;"></div>
+        </div>
+
+        <div style="padding: 24px 40px;">
+          
+          <!-- Invoice Title -->
+          <div style="text-align: center; margin-bottom: 16px;">
+            <h2 style="color: #8B4513; font-size: 18px; font-weight: 700; margin: 0 0 4px 0; letter-spacing: 2px;">SELLER INVOICE</h2>
+            <p style="color: #6B7280; font-size: 12px; margin: 0;">Invoice #${invoiceNumber}</p>
+            <p style="color: #9CA3AF; font-size: 9px; margin: 2px 0 0 0;">Generated on ${today}</p>
+          </div>
+
+          <!-- Seller & Order Info Grid -->
+          <div style="display: table; width: 100%; border: 2px solid #E5E7EB; border-radius: 8px; overflow: hidden; margin-bottom: 14px;">
+            <div style="display: table-row;">
+              <div style="display: table-cell; background: #F9FAFB; padding: 14px; width: 50%; border-right: 1px solid #E5E7EB; vertical-align: top;">
+                <p style="color: #8B4513; font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 8px 0;">Seller Details</p>
+                <p style="color: #111827; font-size: 13px; font-weight: 700; margin: 0 0 5px 0;">${user?.storeName || user?.name || 'Seller'}</p>
+                <p style="color: #6B7280; font-size: 10px; margin: 0 0 3px 0;">College Street, Kolkata</p>
+                <p style="color: #6B7280; font-size: 10px; margin: 0;">Phone: ${user?.phone || 'N/A'}</p>
+              </div>
+              <div style="display: table-cell; background: #F9FAFB; padding: 14px; width: 50%; vertical-align: top;">
+                <p style="color: #8B4513; font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 8px 0;">Order Details</p>
+                <p style="color: #6B7280; font-size: 10px; margin: 0 0 3px 0;"><span style="color: #111827; font-weight: 700;">Order ID:</span> ${order.id}</p>
+                <p style="color: #6B7280; font-size: 10px; margin: 0 0 3px 0;"><span style="color: #111827; font-weight: 700;">Payment:</span> ${order.paymentMethod}</p>
+                <p style="color: #6B7280; font-size: 10px; margin: 0;"><span style="color: #111827; font-weight: 700;">Order Date:</span> ${order.date}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ship To Section -->
+          <div style="background: #FEF3C7; border-left: 3px solid #F59E0B; padding: 12px 14px; border-radius: 6px; margin-bottom: 14px;">
+            <p style="color: #8B4513; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin: 0 0 6px 0;">📦 SHIP TO</p>
+            <p style="color: #111827; font-size: 11px; font-weight: 700; margin: 0 0 4px 0;">${order.customerName}</p>
+            <p style="color: #6B7280; font-size: 9px; margin: 0 0 2px 0;">📞 ${order.customerPhone}</p>
+            <p style="color: #6B7280; font-size: 9px; margin: 0;">📍 ${order.shippingAddress}</p>
+          </div>
+
+          <!-- Items Table -->
+          <table style="width: 100%; border: 2px solid #E5E7EB; border-collapse: collapse; margin-bottom: 14px; border-radius: 8px; overflow: hidden;">
+            <thead>
+              <tr style="background: #8B4513;">
+                <th style="color: white; text-align: left; padding: 8px 10px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;">Book Details</th>
+                <th style="color: white; text-align: center; padding: 8px 10px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; width: 50px;">Qty</th>
+                <th style="color: white; text-align: right; padding: 8px 10px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; width: 70px;">Price</th>
+                <th style="color: white; text-align: right; padding: 8px 10px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; width: 70px;">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${order.items.map((item: any, index: number) => {
+                const book = item.book || item;
+                const title = book.title;
+                const author = book.author || 'N/A';
+                const isbn = book.isbn || 'N/A';
+                const condition = book.condition || 'N/A';
+                const price = book.price;
+                const quantity = item.quantity;
+                const itemTotal = price * quantity;
+                const bgColor = index % 2 === 0 ? '#FFFFFF' : '#F9FAFB';
+                const conditionDisplay = condition === 'new' ? 'New' : condition === 'like-new' ? 'Like New' : condition === 'used' ? 'Used' : condition;
+                
+                return `
+                  <tr style="background: ${bgColor};">
+                    <td style="padding: 8px 10px; border-bottom: 1px solid #E5E7EB; vertical-align: top;">
+                      <div style="color: #111827; font-size: 11px; font-weight: 700; margin-bottom: 3px;">${title}</div>
+                      <div style="color: #6B7280; font-size: 9px; margin-bottom: 2px;">By: ${author}</div>
+                      <div style="color: #9CA3AF; font-size: 8px;">ISBN: ${isbn} • ${conditionDisplay}</div>
+                    </td>
+                    <td style="color: #6B7280; font-size: 11px; font-weight: 700; text-align: center; padding: 8px 10px; border-bottom: 1px solid #E5E7EB; vertical-align: top;">${quantity}</td>
+                    <td style="color: #6B7280; font-size: 11px; font-weight: 600; text-align: right; padding: 8px 10px; border-bottom: 1px solid #E5E7EB; vertical-align: top;">₹${price}</td>
+                    <td style="color: #111827; font-size: 11px; font-weight: 700; text-align: right; padding: 8px 10px; border-bottom: 1px solid #E5E7EB; vertical-align: top;">₹${itemTotal}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+
+          <!-- Payment Summary -->
+          <div style="margin-left: auto; width: 280px; margin-bottom: 14px;">
+            <div style="border: 2px solid #E5E7EB; border-radius: 6px; overflow: hidden;">
+              <div style="background: #F9FAFB; padding: 8px 14px; border-bottom: 2px solid #E5E7EB;">
+                <p style="color: #8B4513; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin: 0;">Payment Breakdown</p>
+              </div>
+              <div style="padding: 12px 14px; background: white;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                  <span style="color: #6B7280; font-size: 11px;">Order Total</span>
+                  <span style="color: #111827; font-size: 11px; font-weight: 700;">₹${order.total}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding-bottom: 10px; border-bottom: 2px dashed #D1D5DB; margin-bottom: 10px;">
+                  <span style="color: #6B7280; font-size: 11px;">Platform Fee (10%)</span>
+                  <span style="color: #DC2626; font-size: 11px; font-weight: 700;">- ₹${platformCommission}</span>
+                </div>
+                <div style="background: linear-gradient(135deg, #16A34A 0%, #22C55E 100%); padding: 10px 12px; border-radius: 4px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: white; font-size: 11px; font-weight: 700;">Your Earnings</span>
+                    <span style="color: white; font-size: 16px; font-weight: 700;">₹${sellerPayout}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Delivery Instructions -->
+          <div style="background: #DBEAFE; border-left: 3px solid #3B82F6; padding: 10px 12px; border-radius: 6px; margin-bottom: 10px;">
+            <p style="color: #1E40AF; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin: 0 0 6px 0;">⚠️ DELIVERY INSTRUCTIONS</p>
+            <ul style="color: #374151; font-size: 9px; margin: 0; padding-left: 16px; line-height: 1.6;">
+              <li>Ensure all items are securely packed and sealed before handover</li>
+              <li>Print and attach this invoice inside the package</li>
+              <li>Verify customer details are clearly marked on the package</li>
+              <li>Obtain delivery partner signature with timestamp</li>
+              <li>Keep a copy for your records and tracking</li>
+            </ul>
+          </div>
+
+          <!-- Payment Terms -->
+          <div style="background: #FEF9C3; border: 1px solid #EAB308; padding: 8px 12px; border-radius: 6px; margin-bottom: 14px; text-align: center;">
+            <p style="color: #854D0E; font-size: 9px; margin: 0;">
+              <strong>💰 Payment Terms:</strong> Your earnings will be transferred within 2-3 business days after successful delivery confirmation
+            </p>
+          </div>
+
+        </div>
+
+        <!-- Footer -->
+        <div style="background: #F3F4F6; padding: 16px 32px; border-top: 3px solid #8B4513; text-align: center;">
+          <p style="color: #9CA3AF; font-size: 9px; margin: 0 0 6px 0;">This is a computer-generated invoice. No signature required.</p>
+          <p style="color: #8B4513; font-size: 11px; font-weight: 700; margin: 0 0 6px 0;">Thank you for being part of BOI PARA!</p>
+          <p style="color: #6B7280; font-size: 10px; margin: 0;">Questions? Contact us at support@boipara.com | +91 33 1234 5678</p>
+        </div>
+
+      </div>
+    `;
+
+    document.body.appendChild(invoiceDiv);
+
+    try {
+      // Wait for the DOM to be ready
+      await new Promise(resolve => setTimeout(resolve, 150));
+
+      // Generate canvas from the invoice div
+      const canvas = await html2canvas(invoiceDiv, {
+        scale: 2,
+        backgroundColor: '#FFFFFF',
+        logging: false,
+        useCORS: true,
+        allowTaint: true,
+        windowWidth: 794,
+        windowHeight: 1123,
+      });
+
+      // Create PDF with proper A4 dimensions
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = 210; // A4 width in mm
+      const pdfHeight = 297; // A4 height in mm
+      
+      const imgData = canvas.toDataURL('image/png', 1.0);
+      
+      // Calculate image dimensions to fit page
+      const imgWidth = pdfWidth;
+      const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      // Add image to PDF (will fit on one page with optimized layout)
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      
+      // Download PDF
+      pdf.save(`BOI-PARA-Seller-Invoice-${order.id}.pdf`);
+      
+    } catch (error) {
+      console.error('Error generating seller invoice:', error);
+      toast.error('Failed to generate invoice');
+    } finally {
+      // Clean up
+      document.body.removeChild(invoiceDiv);
+    }
+  };
