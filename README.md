@@ -102,6 +102,25 @@ EMAIL_PASS=your-app-password-here
 - Socket.IO
 - Nodemailer
 
+## 🚀 Deployment
+
+**Ready to deploy?** Your app is 100% configured for production!
+
+### Quick Deploy to Render (Recommended)
+1. Read: [RENDER_QUICK_START.md](RENDER_QUICK_START.md) - 30 minute setup
+2. Or: [RENDER_DEPLOYMENT_GUIDE.md](RENDER_DEPLOYMENT_GUIDE.md) - Detailed guide
+3. Visual: [RENDER_VISUAL_GUIDE.md](RENDER_VISUAL_GUIDE.md) - Flowchart
+
+### Alternative: Deploy to Vercel
+- [VERCEL_DEPLOYMENT_GUIDE.md](VERCEL_DEPLOYMENT_GUIDE.md)
+
+### Deployment Resources
+- [DEPLOYMENT_READY.md](DEPLOYMENT_READY.md) - Complete deployment overview
+- [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) - Track your progress
+- [render-env-variables.txt](render-env-variables.txt) - Environment variables template
+
+**Cost**: $0/month (Free tier) | **Time**: ~30 minutes
+
 ## 📖 Documentation
 
 For detailed features and implementation:
@@ -109,7 +128,8 @@ For detailed features and implementation:
 - [Features Checklist](FEATURES_CHECKLIST.md)
 - [Implementation Summary](IMPLEMENTATION_SUMMARY.md)
 
-### 🛠️ Recent Fixes:
+### 🛠️ Recent Updates:
+- **[Deployment Configurations](DEPLOYMENT_READY.md)** - Ready for Render & Vercel
 - **[Orders Section Fix](ORDERS_README.md)** - Customer orders now fully connected to MongoDB
   - [Complete Fix Summary](ORDERS_FIX_SUMMARY.md)
   - [Testing Guide](ORDERS_FIX_GUIDE.md)
