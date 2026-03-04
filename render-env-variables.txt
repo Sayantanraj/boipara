@@ -1,0 +1,87 @@
+# ========================================
+# RENDER BACKEND ENVIRONMENT VARIABLES
+# ========================================
+# Copy these to: Render Dashboard → boipara-backend → Environment
+# ========================================
+
+MONGODB_URI=mongodb+srv://boipara_admin:YOUR_PASSWORD_HERE@cluster.xxxxx.mongodb.net/boipara?retryWrites=true&w=majority
+JWT_SECRET=boipara-super-secret-jwt-key-minimum-32-characters-long-2024
+PORT=3001
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-gmail-app-password-here
+FRONTEND_URL=https://boipara.onrender.com
+NODE_ENV=production
+
+# ========================================
+# RENDER FRONTEND ENVIRONMENT VARIABLES
+# ========================================
+# Copy these to: Render Dashboard → boipara → Environment
+# ========================================
+
+VITE_API_URL=https://boipara-backend.onrender.com/api
+
+# ========================================
+# INSTRUCTIONS
+# ========================================
+
+# 1. MONGODB_URI:
+#    - Get from MongoDB Atlas after creating cluster
+#    - Replace YOUR_PASSWORD_HERE with actual password
+#    - Replace cluster.xxxxx with your cluster address
+#    - Must include /boipara before the ?
+
+# 2. JWT_SECRET:
+#    - Keep as is or generate new random 32+ character string
+#    - Never share this publicly
+
+# 3. EMAIL_USER & EMAIL_PASS:
+#    - Use Gmail account
+#    - EMAIL_PASS must be Gmail App Password (not regular password)
+#    - Get App Password: Google Account → Security → App Passwords
+
+# 4. FRONTEND_URL:
+#    - Update after frontend is deployed
+#    - Format: https://your-app-name.onrender.com
+
+# 5. VITE_API_URL:
+#    - Update after backend is deployed
+#    - Format: https://your-backend-name.onrender.com/api
+
+# ========================================
+# GMAIL APP PASSWORD SETUP
+# ========================================
+# 1. Go to: https://myaccount.google.com
+# 2. Security → 2-Step Verification (enable it)
+# 3. Security → App passwords
+# 4. Select app: Mail
+# 5. Select device: Other (type "Render Backend")
+# 6. Click Generate
+# 7. Copy the 16-character password
+# 8. Use in EMAIL_PASS variable
+
+# ========================================
+# MONGODB ATLAS SETUP
+# ========================================
+# 1. Create account: https://www.mongodb.com/cloud/atlas
+# 2. Create FREE cluster (M0)
+# 3. Database Access → Add User:
+#    - Username: boipara_admin
+#    - Password: Auto-generate (save it!)
+#    - Role: Read and write to any database
+# 4. Network Access → Add IP:
+#    - Click "Allow Access from Anywhere"
+#    - IP: 0.0.0.0/0
+# 5. Database → Connect → Connect your application
+#    - Copy connection string
+#    - Replace <password> with your password
+#    - Add /boipara before ?retryWrites
+
+# ========================================
+# TESTING
+# ========================================
+# After deployment, test these URLs:
+# - Backend API: https://boipara-backend.onrender.com/api/books
+# - Frontend: https://boipara.onrender.com
+# - Login: customer@test.com (any password)

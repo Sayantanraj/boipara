@@ -1,0 +1,26 @@
+# Backend Environment Variables (Vercel Dashboard)
+# Copy these to: Vercel Dashboard → boipara-backend → Settings → Environment Variables
+
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/boipara?retryWrites=true&w=majority
+JWT_SECRET=your-super-secret-jwt-key-minimum-32-characters-long
+PORT=3001
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-gmail-app-password
+FRONTEND_URL=https://boipara.vercel.app
+
+# Frontend Environment Variables (Vercel Dashboard)
+# Copy these to: Vercel Dashboard → boipara → Settings → Environment Variables
+
+VITE_API_URL=https://boipara-backend.vercel.app/api
+
+# ============================================
+# INSTRUCTIONS:
+# ============================================
+# 1. Replace all placeholder values with actual values
+# 2. For MongoDB: Use MongoDB Atlas connection string
+# 3. For EMAIL_PASS: Use Gmail App Password (not regular password)
+# 4. For JWT_SECRET: Generate a random 32+ character string
+# 5. Update FRONTEND_URL after frontend deployment
+# 6. Update VITE_API_URL after backend deployment

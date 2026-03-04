@@ -1,0 +1,52 @@
+{
+  "services": [
+    {
+      "type": "web",
+      "name": "boipara-backend",
+      "runtime": "node",
+      "region": "singapore",
+      "plan": "free",
+      "buildCommand": "npm install",
+      "startCommand": "npm start",
+      "healthCheckPath": "/api/books",
+      "envVars": [
+        {
+          "key": "MONGODB_URI",
+          "sync": false
+        },
+        {
+          "key": "JWT_SECRET",
+          "sync": false
+        },
+        {
+          "key": "PORT",
+          "value": "3001"
+        },
+        {
+          "key": "EMAIL_HOST",
+          "value": "smtp.gmail.com"
+        },
+        {
+          "key": "EMAIL_PORT",
+          "value": "587"
+        },
+        {
+          "key": "EMAIL_USER",
+          "sync": false
+        },
+        {
+          "key": "EMAIL_PASS",
+          "sync": false
+        },
+        {
+          "key": "FRONTEND_URL",
+          "sync": false
+        },
+        {
+          "key": "NODE_ENV",
+          "value": "production"
+        }
+      ]
+    }
+  ]
+}

@@ -11,6 +11,13 @@ build/
 .env
 .env.local
 .env.production
+.env.development
+backend/.env
+backend/.env.local
+backend/.env.production
+
+# Vercel
+.vercel
 
 # Logs
 *.log
