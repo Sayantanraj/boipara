@@ -234,7 +234,7 @@ export function ProfilePage({ onLocationChange }: { onLocationChange?: (location
                     className="w-full px-4 py-3 border-2 border-[#D4AF37] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B6F47] text-[#2C1810]"
                   />
                 ) : (
-                  <p className="text-lg text-[#2C1810] font-medium px-4 py-3 bg-[#F5E6D3] rounded-lg">{profileData.name}</p>
+                  <p className="text-base sm:text-lg text-[#2C1810] font-medium px-3 sm:px-4 py-2 sm:py-3 bg-[#F5E6D3] rounded-lg break-words">{profileData.name}</p>
                 )}
               </div>
 
@@ -252,7 +252,7 @@ export function ProfilePage({ onLocationChange }: { onLocationChange?: (location
                     className="w-full px-4 py-3 border-2 border-[#D4AF37] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B6F47] text-[#2C1810]"
                   />
                 ) : (
-                  <p className="text-lg text-[#2C1810] font-medium px-4 py-3 bg-[#F5E6D3] rounded-lg">{profileData.email}</p>
+                  <p className="text-base sm:text-lg text-[#2C1810] font-medium px-3 sm:px-4 py-2 sm:py-3 bg-[#F5E6D3] rounded-lg break-words">{profileData.email}</p>
                 )}
               </div>
 
@@ -271,7 +271,7 @@ export function ProfilePage({ onLocationChange }: { onLocationChange?: (location
                     className="w-full px-4 py-3 border-2 border-[#D4AF37] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B6F47] text-[#2C1810]"
                   />
                 ) : (
-                  <p className="text-lg text-[#2C1810] font-medium px-4 py-3 bg-[#F5E6D3] rounded-lg">
+                  <p className="text-base sm:text-lg text-[#2C1810] font-medium px-3 sm:px-4 py-2 sm:py-3 bg-[#F5E6D3] rounded-lg break-words">
                     {profileData.phone || 'Not provided'}
                   </p>
                 )}
@@ -292,7 +292,7 @@ export function ProfilePage({ onLocationChange }: { onLocationChange?: (location
                     className="w-full px-4 py-3 border-2 border-[#D4AF37] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B6F47] text-[#2C1810] resize-none"
                   />
                 ) : (
-                  <p className="text-lg text-[#2C1810] font-medium px-4 py-3 bg-[#F5E6D3] rounded-lg">
+                  <p className="text-base sm:text-lg text-[#2C1810] font-medium px-3 sm:px-4 py-2 sm:py-3 bg-[#F5E6D3] rounded-lg break-words">
                     {profileData.location || 'Not provided'}
                   </p>
                 )}
@@ -315,7 +315,7 @@ export function ProfilePage({ onLocationChange }: { onLocationChange?: (location
                         className="w-full px-4 py-3 border-2 border-[#D4AF37] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B6F47] text-[#2C1810]"
                       />
                     ) : (
-                      <p className="text-lg text-[#2C1810] font-medium px-4 py-3 bg-[#F5E6D3] rounded-lg">
+                      <p className="text-base sm:text-lg text-[#2C1810] font-medium px-3 sm:px-4 py-2 sm:py-3 bg-[#F5E6D3] rounded-lg break-words">
                         {profileData.storeName || 'Not provided'}
                       </p>
                     )}
@@ -336,7 +336,7 @@ export function ProfilePage({ onLocationChange }: { onLocationChange?: (location
                         className="w-full px-4 py-3 border-2 border-[#D4AF37] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B6F47] text-[#2C1810] resize-none"
                       />
                     ) : (
-                      <p className="text-lg text-[#2C1810] font-medium px-4 py-3 bg-[#F5E6D3] rounded-lg">
+                      <p className="text-base sm:text-lg text-[#2C1810] font-medium px-3 sm:px-4 py-2 sm:py-3 bg-[#F5E6D3] rounded-lg break-words">
                         {user.storeAddress || 'Not provided'}
                       </p>
                     )}
@@ -357,7 +357,7 @@ export function ProfilePage({ onLocationChange }: { onLocationChange?: (location
                         className="w-full px-4 py-3 border-2 border-[#D4AF37] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B6F47] text-[#2C1810]"
                       />
                     ) : (
-                      <p className="text-lg text-[#2C1810] font-medium px-4 py-3 bg-[#F5E6D3] rounded-lg">
+                      <p className="text-base sm:text-lg text-[#2C1810] font-medium px-3 sm:px-4 py-2 sm:py-3 bg-[#F5E6D3] rounded-lg break-words">
                         {user.gtin || 'Not provided'}
                       </p>
                     )}
@@ -378,7 +378,7 @@ export function ProfilePage({ onLocationChange }: { onLocationChange?: (location
                         className="w-full px-4 py-3 border-2 border-[#D4AF37] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B6F47] text-[#2C1810]"
                       />
                     ) : (
-                      <p className="text-lg text-[#2C1810] font-medium px-4 py-3 bg-[#F5E6D3] rounded-lg">
+                      <p className="text-base sm:text-lg text-[#2C1810] font-medium px-3 sm:px-4 py-2 sm:py-3 bg-[#F5E6D3] rounded-lg break-words">
                         {user.gst || 'Not provided'}
                       </p>
                     )}
@@ -399,7 +399,7 @@ export function ProfilePage({ onLocationChange }: { onLocationChange?: (location
                         className="w-full px-4 py-3 border-2 border-[#D4AF37] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B6F47] text-[#2C1810]"
                       />
                     ) : (
-                      <p className="text-lg text-[#2C1810] font-medium px-4 py-3 bg-[#F5E6D3] rounded-lg">
+                      <p className="text-base sm:text-lg text-[#2C1810] font-medium px-3 sm:px-4 py-2 sm:py-3 bg-[#F5E6D3] rounded-lg break-words">
                         {user.businessRegistration || 'Not provided'}
                       </p>
                     )}
@@ -420,7 +420,7 @@ export function ProfilePage({ onLocationChange }: { onLocationChange?: (location
                         className="w-full px-4 py-3 border-2 border-[#D4AF37] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B6F47] text-[#2C1810]"
                       />
                     ) : (
-                      <p className="text-lg text-[#2C1810] font-medium px-4 py-3 bg-[#F5E6D3] rounded-lg">
+                      <p className="text-base sm:text-lg text-[#2C1810] font-medium px-3 sm:px-4 py-2 sm:py-3 bg-[#F5E6D3] rounded-lg break-words">
                         {user.yearsInBusiness || 'Not provided'}
                       </p>
                     )}
@@ -441,7 +441,7 @@ export function ProfilePage({ onLocationChange }: { onLocationChange?: (location
                         className="w-full px-4 py-3 border-2 border-[#D4AF37] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B6F47] text-[#2C1810] resize-none"
                       />
                     ) : (
-                      <p className="text-lg text-[#2C1810] font-medium px-4 py-3 bg-[#F5E6D3] rounded-lg">
+                      <p className="text-base sm:text-lg text-[#2C1810] font-medium px-3 sm:px-4 py-2 sm:py-3 bg-[#F5E6D3] rounded-lg break-words">
                         {user.specialties || 'Not provided'}
                       </p>
                     )}
@@ -636,7 +636,7 @@ export function ProfilePage({ onLocationChange }: { onLocationChange?: (location
                   <Shield className="size-4" />
                   Account Type
                 </label>
-                <p className="text-lg text-[#2C1810] font-medium px-4 py-3 bg-[#F5E6D3] rounded-lg capitalize">
+                <p className="text-base sm:text-lg text-[#2C1810] font-medium px-3 sm:px-4 py-2 sm:py-3 bg-[#F5E6D3] rounded-lg capitalize">
                   {profileData.role === 'customer' ? 'Customer' : profileData.role === 'seller' ? 'Seller' : 'Administrator'}
                 </p>
               </div>
@@ -644,18 +644,19 @@ export function ProfilePage({ onLocationChange }: { onLocationChange?: (location
 
             {/* Action Buttons */}
             {isEditing && (
-              <div className="flex gap-4 mt-8 pt-6 border-t-2 border-[#D4AF37]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-8 pt-6 border-t-2 border-[#D4AF37]">
                 <button
                   onClick={handleSave}
-                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-[#8B6F47] text-white rounded-lg hover:bg-[#6B5537] transition-colors font-semibold"
+                  className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#8B6F47] to-[#6B5537] hover:from-[#D4AF37] hover:to-[#B8941F] text-white rounded-lg transition-all font-semibold shadow-lg text-sm sm:text-base"
                 >
-                  <Save className="size-5" />
+                  <Save className="size-4 sm:size-5" />
                   Save Changes
                 </button>
                 <button
                   onClick={handleCancel}
-                  className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
+                  className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-gray-300 to-gray-200 hover:from-gray-400 hover:to-gray-300 text-gray-800 rounded-lg transition-all font-semibold shadow-lg text-sm sm:text-base"
                 >
+                  <X className="size-4 sm:size-5" />
                   Cancel
                 </button>
               </div>

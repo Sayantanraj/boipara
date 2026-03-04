@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Navbar } from '../components/Navbar';
 import { CustomDropdown } from '../components/CustomDropdown';
-import { Upload, FileSpreadsheet, Package, TrendingUp, BookOpen, Plus, Minus, Edit, Trash2, Eye, IndianRupee, Star, Clock, CheckCircle2, AlertCircle, X, Truck, PackageCheck, Ban, Phone, MapPin, AlertTriangle, Download, RefreshCw, ShoppingCart, RotateCcw } from 'lucide-react';
+import { Upload, FileSpreadsheet, Package, TrendingUp, BookOpen, Plus, Minus, Edit, Trash2, Eye, IndianRupee, Star, Clock, CheckCircle2, AlertCircle, X, Truck, PackageCheck, Ban, Phone, MapPin, AlertTriangle, Download, RefreshCw, ShoppingCart, RotateCcw, Menu, ChevronDown, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
@@ -30,6 +30,32 @@ export function SellerDashboard() {
   // Real orders from database
   const [sellerOrders, setSellerOrders] = useState<Order[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
+  
+  // Real seller statistics from database
+  const [sellerStats, setSellerStats] = useState({
+    totalBooks: 0,
+    totalRevenue: 0,
+    totalOrders: 0,
+    pendingOrders: 0,
+    avgRating: 4.8,
+    totalReviews: 0
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
+  
+  // Load seller statistics
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const stats = await apiService.getSellerDashboardStats();
+        setSellerStats(stats);
+      } catch (error) {
+        console.error('Error loading stats:', error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+    loadStats();
+  }, []);
   
   // Notifications
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -122,6 +148,7 @@ export function SellerDashboard() {
     }
   };
   const [activeTab, setActiveTab] = useState<'overview' | 'add-book' | 'bulk-upload' | 'my-books' | 'orders' | 'returns' | 'buyback-books' | 'buyback-orders'>('overview');
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   
   // Buyback cart and checkout state
   const [buybackCart, setBuybackCart] = useState<Array<{ book: BuybackRequest; quantity: number }>>([]);
@@ -313,9 +340,9 @@ export function SellerDashboard() {
   }, [orders]);
 
   const sellerBooks = [...mockBooks.filter(b => b.sellerId === user?.id || b.sellerName === user?.storeName), ...addedBooks];
-  const totalRevenue = sellerBooks.reduce((sum, book) => sum + (book.price * (book.stock > 0 ? 5 : 0)), 0);
+  const totalRevenue = sellerStats.totalRevenue;
   const totalBooks = sellerBooks.length;
-  const totalOrders = 23; // Mock data
+  const totalOrders = sellerStats.totalOrders;
   const avgRating = 4.8;
 
   // Helper function to get current status (from orderStatuses state or order object)
@@ -1741,9 +1768,7 @@ export function SellerDashboard() {
 
   // Calculate additional live stats for overview cards
   const revenueGrowth = totalRevenue > 0 ? Math.round((totalRevenue / Math.max(sellerOrders.length, 1)) / 100) : 12;
-  const pendingOrdersCount = sellerOrders.filter(order => 
-    orderStatuses[order.id] === 'new' || orderStatuses[order.id] === 'accepted'
-  ).length;
+  const pendingOrdersCount = sellerStats.pendingOrders;
   const totalReviews = sellerOrders.filter(order => 
     orderStatuses[order.id] === 'delivered'
   ).length;
@@ -1770,6 +1795,97 @@ export function SellerDashboard() {
             Welcome back, <span className="font-semibold">{user?.storeName || user?.name}</span>!
           </p>
         </div>
+
+        {/* Mobile Dropdown Menu - Only visible on mobile in Overview */}
+        {activeTab === 'overview' && (
+          <div className="lg:hidden bg-[#3D2817] rounded-lg p-4 border-2 border-[#8B6F47] shadow-xl mb-6">
+            <button
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+              className="w-full flex items-center justify-between p-3 bg-[#2C1810] hover:bg-[#4D3827] border-2 border-[#8B6F47] rounded-lg transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <Menu className="size-5 text-[#D4AF37]" />
+                <span className="font-bold text-[#F5E6D3]">Quick Navigation</span>
+              </div>
+              <ChevronDown className={`size-5 text-[#D4AF37] transition-transform ${showMobileMenu ? 'rotate-180' : ''}`} />
+            </button>
+            
+            {showMobileMenu && (
+              <div className="mt-3 space-y-2">
+                <button
+                  onClick={() => { setActiveTab('add-book'); setShowMobileMenu(false); }}
+                  className="w-full flex items-center gap-3 p-3 bg-[#2C1810] hover:bg-[#4D3827] border border-[#8B6F47] rounded-lg transition-all"
+                >
+                  <Plus className="size-5 text-[#D4AF37]" />
+                  <div className="text-left">
+                    <p className="font-bold text-[#F5E6D3] text-sm">Add Book</p>
+                    <p className="text-xs text-[#D4C5AA]">Single book upload</p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => { setActiveTab('bulk-upload'); setShowMobileMenu(false); }}
+                  className="w-full flex items-center gap-3 p-3 bg-[#2C1810] hover:bg-[#4D3827] border border-[#8B6F47] rounded-lg transition-all"
+                >
+                  <FileSpreadsheet className="size-5 text-[#D4AF37]" />
+                  <div className="text-left">
+                    <p className="font-bold text-[#F5E6D3] text-sm">Bulk Upload</p>
+                    <p className="text-xs text-[#D4C5AA]">Upload via CSV/Excel</p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => { setActiveTab('my-books'); setShowMobileMenu(false); }}
+                  className="w-full flex items-center gap-3 p-3 bg-[#2C1810] hover:bg-[#4D3827] border border-[#8B6F47] rounded-lg transition-all"
+                >
+                  <BookOpen className="size-5 text-[#D4AF37]" />
+                  <div className="text-left">
+                    <p className="font-bold text-[#F5E6D3] text-sm">My Books</p>
+                    <p className="text-xs text-[#D4C5AA]">View all listings</p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => { setActiveTab('orders'); setShowMobileMenu(false); }}
+                  className="w-full flex items-center gap-3 p-3 bg-[#2C1810] hover:bg-[#4D3827] border border-[#8B6F47] rounded-lg transition-all"
+                >
+                  <Package className="size-5 text-[#D4AF37]" />
+                  <div className="text-left">
+                    <p className="font-bold text-[#F5E6D3] text-sm">Orders</p>
+                    <p className="text-xs text-[#D4C5AA]">Manage pending orders</p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => { setActiveTab('returns'); setShowMobileMenu(false); }}
+                  className="w-full flex items-center gap-3 p-3 bg-[#2C1810] hover:bg-[#4D3827] border border-[#8B6F47] rounded-lg transition-all"
+                >
+                  <RotateCcw className="size-5 text-[#D4AF37]" />
+                  <div className="text-left">
+                    <p className="font-bold text-[#F5E6D3] text-sm">Returns</p>
+                    <p className="text-xs text-[#D4C5AA]">Process return requests</p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => { setActiveTab('buyback-books'); setShowMobileMenu(false); }}
+                  className="w-full flex items-center gap-3 p-3 bg-[#2C1810] hover:bg-[#4D3827] border border-[#8B6F47] rounded-lg transition-all"
+                >
+                  <RefreshCw className="size-5 text-[#D4AF37]" />
+                  <div className="text-left">
+                    <p className="font-bold text-[#F5E6D3] text-sm">Buyback Books</p>
+                    <p className="text-xs text-[#D4C5AA]">Purchase inventory</p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => { setActiveTab('buyback-orders'); setShowMobileMenu(false); }}
+                  className="w-full flex items-center gap-3 p-3 bg-[#2C1810] hover:bg-[#4D3827] border border-[#8B6F47] rounded-lg transition-all"
+                >
+                  <PackageCheck className="size-5 text-[#D4AF37]" />
+                  <div className="text-left">
+                    <p className="font-bold text-[#F5E6D3] text-sm">My Buyback Orders</p>
+                    <p className="text-xs text-[#D4C5AA]">Track your orders</p>
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Stats Cards */}
         {activeTab === 'overview' ? (
@@ -1829,7 +1945,7 @@ export function SellerDashboard() {
         ) : null}
 
         {/* Tabs */}
-        <div className="bg-[#3D2817] rounded-lg border-2 border-[#8B6F47] shadow-xl mb-6 overflow-x-auto">
+        <div className="hidden lg:block bg-[#3D2817] rounded-lg border-2 border-[#8B6F47] shadow-xl mb-6 overflow-x-auto">
           <div className="flex gap-2 p-2">
             <button
               onClick={() => setActiveTab('overview')}
@@ -2013,6 +2129,14 @@ export function SellerDashboard() {
         {/* Add Book Tab */}
         {activeTab === 'add-book' ? (
           <div className="bg-[#3D2817] rounded-lg p-6 border-2 border-[#8B6F47] shadow-xl">
+            {/* Mobile Back Button */}
+            <button
+              onClick={() => setActiveTab('overview')}
+              className="lg:hidden flex items-center gap-2 mb-4 text-[#D4AF37] hover:text-[#F5E6D3] transition-colors"
+            >
+              <ArrowLeft className="size-5" />
+              {/* <span className="font-semibold">Back to Overview</span> */}
+            </button>
             {/* Edit Mode Banner */}
             {editingBookId && (
               <div className="mb-6 p-4 bg-blue-900/30 border-2 border-blue-500 rounded-lg flex items-center justify-between">
@@ -2365,6 +2489,14 @@ export function SellerDashboard() {
         {/* Bulk Upload Tab */}
         {activeTab === 'bulk-upload' ? (
           <div className="bg-[#3D2817] rounded-lg p-6 border-2 border-[#8B6F47] shadow-xl">
+            {/* Mobile Back Button */}
+            <button
+              onClick={() => setActiveTab('overview')}
+              className="lg:hidden flex items-center gap-2 mb-4 text-[#D4AF37] hover:text-[#F5E6D3] transition-colors"
+            >
+              <ArrowLeft className="size-5" />
+              {/* <span className="font-semibold">Back to Overview</span> */}
+            </button>
             <h2 className="text-2xl font-bold text-[#D4AF37] mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>
               Bulk Upload Books
             </h2>
@@ -2539,6 +2671,14 @@ export function SellerDashboard() {
         {/* My Books Tab */}
         {activeTab === 'my-books' ? (
           <div className="bg-[#3D2817] rounded-lg p-6 border-2 border-[#8B6F47] shadow-xl">
+            {/* Mobile Back Button */}
+            <button
+              onClick={() => setActiveTab('overview')}
+              className="lg:hidden flex items-center gap-2 mb-4 text-[#D4AF37] hover:text-[#F5E6D3] transition-colors"
+            >
+              <ArrowLeft className="size-5" />
+              {/* <span className="font-semibold">Back to Overview</span> */}
+            </button>
             <h2 className="text-2xl font-bold text-[#D4AF37] mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>
               My Book Listings ({sellerBooks.length})
             </h2>
@@ -2617,6 +2757,14 @@ export function SellerDashboard() {
         {/* Orders Tab */}
         {activeTab === 'orders' ? (
           <div className="bg-[#3D2817] rounded-lg p-6 border-2 border-[#8B6F47] shadow-xl">
+            {/* Mobile Back Button */}
+            <button
+              onClick={() => setActiveTab('overview')}
+              className="lg:hidden flex items-center gap-2 mb-4 text-[#D4AF37] hover:text-[#F5E6D3] transition-colors"
+            >
+              <ArrowLeft className="size-5" />
+              {/* <span className="font-semibold">Back to Overview</span> */}
+            </button>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-[#D4AF37]" style={{ fontFamily: "'Playfair Display', serif" }}>
                 Order Management
@@ -3117,6 +3265,14 @@ export function SellerDashboard() {
       {/* Returns Tab */}
       {activeTab === 'returns' && (
         <div className="bg-[#3D2817] rounded-lg p-6 border-2 border-[#8B6F47] shadow-xl">
+          {/* Mobile Back Button */}
+          <button
+            onClick={() => setActiveTab('overview')}
+            className="lg:hidden flex items-center gap-2 mb-4 text-[#D4AF37] hover:text-[#F5E6D3] transition-colors"
+          >
+            <ArrowLeft className="size-5" />
+            {/* <span className="font-semibold">Back to Overview</span> */}
+          </button>
           <h2 className="text-2xl font-bold text-[#D4AF37] mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>
             Return Requests ({returnRequests.filter(r => r.status === 'approved-by-admin').length} Pending)
           </h2>
@@ -3244,6 +3400,14 @@ export function SellerDashboard() {
       {/* Buyback Books Tab */}
       {activeTab === 'buyback-books' ? (
         <div className="bg-[#3D2817] rounded-lg p-6 border-2 border-[#8B6F47] shadow-xl">
+          {/* Mobile Back Button */}
+          <button
+            onClick={() => setActiveTab('overview')}
+            className="lg:hidden flex items-center gap-2 mb-4 text-[#D4AF37] hover:text-[#F5E6D3] transition-colors"
+          >
+            <ArrowLeft className="size-5" />
+            {/* <span className="font-semibold">Back to Overview</span> */}
+          </button>
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-2xl font-bold text-[#D4AF37]" style={{ fontFamily: "'Playfair Display', serif" }}>
@@ -3445,6 +3609,14 @@ export function SellerDashboard() {
       {activeTab === 'buyback-orders' ? (
         <div className="space-y-6">
           <div className="bg-[#3D2817] rounded-lg p-6 border-2 border-[#8B6F47] shadow-xl">
+            {/* Mobile Back Button */}
+            <button
+              onClick={() => setActiveTab('overview')}
+              className="lg:hidden flex items-center gap-2 mb-4 text-[#D4AF37] hover:text-[#F5E6D3] transition-colors"
+            >
+              <ArrowLeft className="size-5" />
+              {/* <span className="font-semibold">Back to Overview</span> */}
+            </button>
             <h2 className="text-2xl font-bold text-[#D4AF37] mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>
               My Buyback Orders ({buybackOrders.length})
             </h2>

@@ -84,7 +84,10 @@ router.get('/seller/my-returns', auth, async (req, res) => {
       return res.status(403).json({ error: 'Seller access required' });
     }
 
-    const returns = await Return.find({ sellerId: req.user.id })
+    const returns = await Return.find({ 
+      sellerId: req.user.id,
+      status: { $in: ['approved-by-admin', 'refund-issued', 'completed'] }
+    })
       .populate('orderId')
       .populate('userId')
       .sort({ createdAt: -1 });

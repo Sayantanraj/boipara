@@ -215,6 +215,10 @@ class ApiService {
     return this.request('/books/seller/my-books');
   }
 
+  async getSellerDashboardStats() {
+    return this.request('/books/seller/stats/dashboard');
+  }
+
   async bulkCreateBooks(books: any[]) {
     console.log('📤 Bulk upload - Sending request...');
     console.log('📤 Number of books:', books.length);
@@ -442,6 +446,54 @@ class ApiService {
 
   async getPopularSearches() {
     return this.request('/search/popular');
+  }
+
+  // Reviews
+  async createReview(reviewData: any) {
+    return this.request('/reviews', {
+      method: 'POST',
+      body: JSON.stringify(reviewData),
+    });
+  }
+
+  async getReviewByOrder(orderId: string) {
+    return this.request(`/reviews/order/${orderId}`);
+  }
+
+  async updateReview(reviewId: string, reviewData: any) {
+    return this.request(`/reviews/${reviewId}`, {
+      method: 'PUT',
+      body: JSON.stringify(reviewData),
+    });
+  }
+
+  async getBookReviews(bookId: string, sort?: string) {
+    const query = sort ? `?sort=${sort}` : '';
+    return this.request(`/reviews/book/${bookId}${query}`);
+  }
+
+  async markReviewHelpful(reviewId: string) {
+    return this.request(`/reviews/${reviewId}/helpful`, {
+      method: 'POST',
+    });
+  }
+
+  async removeReviewHelpful(reviewId: string) {
+    return this.request(`/reviews/${reviewId}/helpful`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Support Tickets
+  async getAllSupportTickets() {
+    return this.request('/support/admin/all');
+  }
+
+  async updateSupportTicketStatus(ticketId: string, status: string, priority?: string, adminNotes?: string) {
+    return this.request(`/support/${ticketId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, priority, adminNotes }),
+    });
   }
 }
 

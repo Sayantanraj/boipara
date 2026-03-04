@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Star, ShoppingBag, Heart, MapPin, Clock, Plus, Minus } from 'lucide-react';
+import { Star, ShoppingBag, ShoppingCart, Heart, MapPin, Clock, Plus, Minus } from 'lucide-react';
 import type { Book } from '../types';
 import { useState } from 'react';
 
@@ -173,14 +173,13 @@ export function ProductCard({ book, onAddToCart, onToggleWishlist, isWishlisted 
               }}
               className="flex-1 bg-gradient-to-r from-[#8B6F47] to-[#6B5537] hover:from-[#6B5537] hover:to-[#8B6F47] text-[#F5E6D3] font-bold py-1.5 rounded-md transition-all duration-300 shadow-md hover:shadow-lg flex items-center justify-center gap-1 border border-[#2C1810]/20 text-[10px]"
             >
-              <ShoppingBag className="size-3" />
-              Add to Cart
+              <ShoppingCart className="size-3" />
+              <span className="hidden sm:inline">Add to Cart</span>
             </button>
             <button
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                // Store book with quantity for direct checkout without adding to cart
                 const buyNowItem = { ...book, quantity };
                 localStorage.setItem('buyNowItem', JSON.stringify(buyNowItem));
                 navigate('/checkout');

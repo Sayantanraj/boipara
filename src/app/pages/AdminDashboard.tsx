@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Navbar } from '../components/Navbar';
-import { Users, Store, BookOpen, IndianRupee, TrendingUp, Package, AlertCircle, CheckCircle, Clock, Shield, X, Star, MapPin, Award, Mail, Calendar, ShoppingBag, Tag, Download, RefreshCw, FileText, RotateCcw } from 'lucide-react';
+import { Users, Store, BookOpen, IndianRupee, TrendingUp, Package, AlertCircle, CheckCircle, Clock, Shield, X, Star, MapPin, Award, Mail, Calendar, ShoppingBag, Tag, Download, RefreshCw, FileText, RotateCcw, MessageCircle } from 'lucide-react';
 import type { User, CartItem, BuybackRequest, Order, PendingBook, ReturnRequest } from '../types';
 import { mockBooks, mockSellers, mockUsers } from '../data/mockData';
 import { Link, useNavigate } from 'react-router-dom';
@@ -52,7 +52,7 @@ export function AdminDashboard() {
   
   // Mock wishlist for navbar
   const [wishlist] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'sellers' | 'books' | 'customerOrders' | 'sellerOrders' | 'returns' | 'buybackSales' | 'buyback' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'sellers' | 'books' | 'customerOrders' | 'sellerOrders' | 'returns' | 'buybackSales' | 'buyback' | 'tickets' | 'settings'>('overview');
   
   // Real users from database
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -83,6 +83,10 @@ export function AdminDashboard() {
   // Real returns from database
   const [returnRequests, setReturnRequests] = useState<ReturnRequest[]>([]);
   const [loadingReturns, setLoadingReturns] = useState(true);
+  
+  // Support tickets from database
+  const [supportTickets, setSupportTickets] = useState<any[]>([]);
+  const [loadingSupportTickets, setLoadingSupportTickets] = useState(true);
   
   // Load users from database
   useEffect(() => {
@@ -211,6 +215,25 @@ export function AdminDashboard() {
     };
 
     loadReturnRequests();
+  }, []);
+
+  // Load support tickets from database
+  useEffect(() => {
+    const loadSupportTickets = async () => {
+      try {
+        setLoadingSupportTickets(true);
+        const tickets = await apiService.getAllSupportTickets();
+        setSupportTickets(tickets);
+        console.log('🎫 Loaded support tickets from database:', tickets.length);
+      } catch (error) {
+        console.error('Error loading support tickets:', error);
+        toast.error('Failed to load support tickets');
+      } finally {
+        setLoadingSupportTickets(false);
+      }
+    };
+
+    loadSupportTickets();
   }, []);
 
   // Load buyback requests from database
@@ -1462,6 +1485,17 @@ export function AdminDashboard() {
               <AlertCircle className="size-3.5" />
               Buyback ({pendingBuybacks})
             </button>
+            <button
+              onClick={() => setActiveTab('tickets')}
+              className={`flex items-center justify-center gap-1 px-2 py-2 rounded-md font-semibold text-xs whitespace-nowrap transition-all flex-1 ${
+                activeTab === 'tickets'
+                  ? 'bg-[#D4AF37] text-[#2C1810]'
+                  : 'text-[#D4C5AA] hover:bg-[#2C1810]'
+              }`}
+            >
+              <MessageCircle className="size-3.5" />
+              Tickets ({supportTickets.filter(t => t.status === 'open').length})
+            </button>
           </div>
         </div>
 
@@ -2433,6 +2467,180 @@ export function AdminDashboard() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Raised Tickets Tab */}
+        {activeTab === 'tickets' && (
+          <div className="bg-[#3D2817] rounded-lg p-6 border-2 border-[#8B6F47] shadow-xl">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-[#D4AF37]" style={{ fontFamily: "'Playfair Display', serif" }}>
+                Raised Support Tickets ({supportTickets.length})
+              </h2>
+              <button
+                onClick={async () => {
+                  try {
+                    setLoadingSupportTickets(true);
+                    const tickets = await apiService.getAllSupportTickets();
+                    setSupportTickets(tickets);
+                    toast.success(`Refreshed ${tickets.length} support tickets!`);
+                  } catch (error) {
+                    console.error('Error refreshing support tickets:', error);
+                    toast.error('Failed to refresh support tickets');
+                  } finally {
+                    setLoadingSupportTickets(false);
+                  }
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-[#8B6F47] hover:bg-[#D4AF37] text-[#F5E6D3] font-semibold rounded transition-all"
+              >
+                <RefreshCw className="size-4" />
+                Refresh
+              </button>
+            </div>
+            <p className="text-[#D4C5AA] mb-4 text-sm">
+              Review and respond to support tickets submitted by users
+            </p>
+            {loadingSupportTickets ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#D4AF37] mx-auto mb-4"></div>
+                <p className="text-[#D4C5AA]">Loading support tickets...</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {supportTickets && supportTickets.length > 0 ? (
+                  supportTickets.map((ticket) => (
+                    <div key={ticket._id} className={`p-4 bg-[#2C1810] rounded-lg border ${
+                      ticket.status === 'open' ? 'border-orange-700/50' :
+                      ticket.status === 'in-progress' ? 'border-blue-700/50' :
+                      ticket.status === 'resolved' ? 'border-emerald-700/50' :
+                      'border-[#8B6F47]'
+                    }`}>
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-bold text-[#F5E6D3]">{ticket.subject}</h3>
+                            <span className={`px-3 py-1 rounded text-xs font-bold ${
+                              ticket.status === 'open' ? 'bg-orange-900/30 text-orange-400 border border-orange-700/50' :
+                              ticket.status === 'in-progress' ? 'bg-blue-900/30 text-blue-400 border border-blue-700/50' :
+                              ticket.status === 'resolved' ? 'bg-emerald-900/30 text-emerald-400 border border-emerald-700/50' :
+                              'bg-gray-900/30 text-gray-400 border border-gray-700/50'
+                            }`}>
+                              {ticket.status.toUpperCase().replace('-', ' ')}
+                            </span>
+                            <span className={`px-2 py-1 rounded text-xs font-bold ${
+                              ticket.priority === 'urgent' ? 'bg-red-900/30 text-red-400 border border-red-700/50' :
+                              ticket.priority === 'high' ? 'bg-orange-900/30 text-orange-400 border border-orange-700/50' :
+                              ticket.priority === 'medium' ? 'bg-yellow-900/30 text-yellow-400 border border-yellow-700/50' :
+                              'bg-blue-900/30 text-blue-400 border border-blue-700/50'
+                            }`}>
+                              {ticket.priority?.toUpperCase() || 'MEDIUM'}
+                            </span>
+                          </div>
+                          <p className="text-sm text-[#D4C5AA] mb-2">
+                            <span className="font-semibold text-[#F5E6D3]">From:</span> {ticket.name} ({ticket.email})
+                          </p>
+                          <p className="text-sm text-[#D4C5AA] mb-2">
+                            <span className="font-semibold text-[#F5E6D3]">Role:</span> {ticket.userRole?.toUpperCase() || 'GUEST'}
+                          </p>
+                          <p className="text-sm text-[#D4C5AA] mb-2">
+                            <span className="font-semibold text-[#F5E6D3]">Submitted:</span> {new Date(ticket.createdAt).toLocaleString()}
+                          </p>
+                          <div className="mt-3 p-3 bg-[#3D2817] rounded border border-[#8B6F47]">
+                            <p className="text-sm text-[#F5E6D3]">{ticket.message}</p>
+                          </div>
+                          {ticket.adminNotes && (
+                            <div className="mt-3 p-3 bg-blue-900/20 rounded border border-blue-700/50">
+                              <p className="text-xs text-blue-400 font-semibold mb-1">Admin Notes:</p>
+                              <p className="text-sm text-[#D4C5AA]">{ticket.adminNotes}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 mt-4 pt-3 border-t border-[#8B6F47]">
+                        <select
+                          value={ticket.status}
+                          onChange={async (e) => {
+                            try {
+                              await apiService.updateSupportTicketStatus(ticket._id, e.target.value);
+                              setSupportTickets(prev => prev.map(t => 
+                                t._id === ticket._id ? { ...t, status: e.target.value } : t
+                              ));
+                              toast.success('Ticket status updated');
+                            } catch (error) {
+                              console.error('Error updating ticket status:', error);
+                              toast.error('Failed to update ticket status');
+                            }
+                          }}
+                          className="px-3 py-1.5 bg-[#3D2817] border border-[#8B6F47] rounded text-[#F5E6D3] text-sm focus:outline-none focus:border-[#D4AF37]"
+                        >
+                          <option value="open">Open</option>
+                          <option value="in-progress">In Progress</option>
+                          <option value="resolved">Resolved</option>
+                          <option value="closed">Closed</option>
+                        </select>
+                        <select
+                          value={ticket.priority || 'medium'}
+                          onChange={async (e) => {
+                            try {
+                              await apiService.updateSupportTicketStatus(ticket._id, ticket.status, e.target.value);
+                              setSupportTickets(prev => prev.map(t => 
+                                t._id === ticket._id ? { ...t, priority: e.target.value } : t
+                              ));
+                              toast.success('Ticket priority updated');
+                            } catch (error) {
+                              console.error('Error updating ticket priority:', error);
+                              toast.error('Failed to update ticket priority');
+                            }
+                          }}
+                          className="px-3 py-1.5 bg-[#3D2817] border border-[#8B6F47] rounded text-[#F5E6D3] text-sm focus:outline-none focus:border-[#D4AF37]"
+                        >
+                          <option value="low">Low Priority</option>
+                          <option value="medium">Medium Priority</option>
+                          <option value="high">High Priority</option>
+                          <option value="urgent">Urgent</option>
+                        </select>
+                        <button
+                          onClick={() => {
+                            const notes = prompt('Add admin notes:');
+                            if (notes) {
+                              apiService.updateSupportTicketStatus(ticket._id, ticket.status, ticket.priority, notes)
+                                .then(() => {
+                                  setSupportTickets(prev => prev.map(t => 
+                                    t._id === ticket._id ? { ...t, adminNotes: notes } : t
+                                  ));
+                                  toast.success('Admin notes added');
+                                })
+                                .catch(error => {
+                                  console.error('Error adding notes:', error);
+                                  toast.error('Failed to add notes');
+                                });
+                            }
+                          }}
+                          className="px-4 py-1.5 bg-[#8B6F47] hover:bg-[#D4AF37] text-[#F5E6D3] font-semibold rounded text-sm transition-all"
+                        >
+                          Add Notes
+                        </button>
+                        <button
+                          onClick={() => {
+                            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(ticket.email)}&su=${encodeURIComponent(`Re: ${ticket.subject}`)}`;
+                            window.open(gmailUrl, '_blank');
+                          }}
+                          className="ml-auto px-4 py-1.5 bg-blue-700 hover:bg-blue-600 text-white font-semibold rounded text-sm transition-all inline-flex items-center gap-2"
+                        >
+                          <Mail className="size-4" />
+                          Reply via Email
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-8 bg-[#2C1810] rounded-lg border border-[#8B6F47] text-center">
+                    <MessageCircle className="w-12 h-12 text-[#8B6F47] mx-auto mb-3" />
+                    <p className="text-[#D4C5AA]">No support tickets found</p>
+                  </div>
+                )}
               </div>
             )}
           </div>

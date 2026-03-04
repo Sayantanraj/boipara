@@ -217,17 +217,6 @@ export function HomePage() {
         </div>
       </div>
 
-      {/* Location Bar - Mobile */}
-      <div className="lg:hidden bg-[#3D2817] border-y border-[#8B6F47] px-4 py-3">
-        <div className="flex items-center gap-2">
-          <MapPin className="size-4 text-[#D4AF37]" />
-          <div>
-            <p className="text-xs text-[#A08968]">Delivering to</p>
-            <p className="text-sm font-semibold text-[#F5E6D3]">{location}</p>
-          </div>
-        </div>
-      </div>
-
       {/* Quick Categories */}
       <div className="bg-white py-3 border-b-2 border-[#8B6F47]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -417,36 +406,36 @@ export function HomePage() {
       </div>
 
       {/* Trust Features */}
-      <div className="bg-[#3D2817] py-4 sm:py-6 border-y-4 border-[#8B6F47]">
+      <div className="bg-transparent md:bg-[#3D2817] py-4 sm:py-6 border-y-4 border-[#8B6F47]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-[#D4AF37] rounded-full mb-3 sm:mb-4 shadow-lg">
-                <Shield className="size-6 sm:size-8 text-[#2C1810]" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
+            <div className="bg-gradient-to-br from-[#2C1810] to-[#3D2817] border-2 border-[#8B6F47] rounded-xl p-4 shadow-lg text-center md:bg-none md:border-0 md:shadow-none md:rounded-none">
+              <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-[#D4AF37] rounded-full mb-2 sm:mb-4 shadow-lg">
+                <Shield className="size-5 sm:size-8 text-[#2C1810]" />
               </div>
-              <h3 className="font-bold text-[#F5E6D3] mb-1 sm:mb-2 text-sm sm:text-base" style={{ fontFamily: "'Playfair Display', serif" }}>100% Authentic</h3>
-              <p className="text-xs sm:text-sm text-[#D4C5AA]">Verified sellers only</p>
+              <h3 className="font-bold text-[#F5E6D3] mb-1 text-xs sm:text-base" style={{ fontFamily: "'Playfair Display', serif" }}>100% Authentic</h3>
+              <p className="text-[10px] sm:text-sm text-[#D4C5AA]">Verified sellers only</p>
             </div>
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-[#D4AF37] rounded-full mb-3 sm:mb-4 shadow-lg">
-                <Award className="size-6 sm:size-8 text-[#2C1810]" />
+            <div className="bg-gradient-to-br from-[#2C1810] to-[#3D2817] border-2 border-[#8B6F47] rounded-xl p-4 shadow-lg text-center md:bg-none md:border-0 md:shadow-none md:rounded-none">
+              <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-[#D4AF37] rounded-full mb-2 sm:mb-4 shadow-lg">
+                <Award className="size-5 sm:size-8 text-[#2C1810]" />
               </div>
-              <h3 className="font-bold text-[#F5E6D3] mb-1 sm:mb-2 text-sm sm:text-base" style={{ fontFamily: "'Playfair Display', serif" }}>Best Prices</h3>
-              <p className="text-xs sm:text-sm text-[#D4C5AA]">Direct from sellers</p>
+              <h3 className="font-bold text-[#F5E6D3] mb-1 text-xs sm:text-base" style={{ fontFamily: "'Playfair Display', serif" }}>Best Prices</h3>
+              <p className="text-[10px] sm:text-sm text-[#D4C5AA]">Direct from sellers</p>
             </div>
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-[#D4AF37] rounded-full mb-3 sm:mb-4 shadow-lg">
-                <RefreshCw className="size-6 sm:size-8 text-[#2C1810]" />
+            <div className="bg-gradient-to-br from-[#2C1810] to-[#3D2817] border-2 border-[#8B6F47] rounded-xl p-4 shadow-lg text-center md:bg-none md:border-0 md:shadow-none md:rounded-none">
+              <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-[#D4AF37] rounded-full mb-2 sm:mb-4 shadow-lg">
+                <RefreshCw className="size-5 sm:size-8 text-[#2C1810]" />
               </div>
-              <h3 className="font-bold text-[#F5E6D3] mb-1 sm:mb-2 text-sm sm:text-base" style={{ fontFamily: "'Playfair Display', serif" }}>Easy Buyback</h3>
-              <p className="text-xs sm:text-sm text-[#D4C5AA]">Sell used books</p>
+              <h3 className="font-bold text-[#F5E6D3] mb-1 text-xs sm:text-base" style={{ fontFamily: "'Playfair Display', serif" }}>Easy Buyback</h3>
+              <p className="text-[10px] sm:text-sm text-[#D4C5AA]">Sell used books</p>
             </div>
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-[#D4AF37] rounded-full mb-3 sm:mb-4 shadow-lg">
-                <Truck className="size-6 sm:size-8 text-[#2C1810]" />
+            <div className="bg-gradient-to-br from-[#2C1810] to-[#3D2817] border-2 border-[#8B6F47] rounded-xl p-4 shadow-lg text-center md:bg-none md:border-0 md:shadow-none md:rounded-none">
+              <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-[#D4AF37] rounded-full mb-2 sm:mb-4 shadow-lg">
+                <Truck className="size-5 sm:size-8 text-[#2C1810]" />
               </div>
-              <h3 className="font-bold text-[#F5E6D3] mb-1 sm:mb-2 text-sm sm:text-base" style={{ fontFamily: "'Playfair Display', serif" }}>Fast Delivery</h3>
-              <p className="text-xs sm:text-sm text-[#D4C5AA]">3-5 days</p>
+              <h3 className="font-bold text-[#F5E6D3] mb-1 text-xs sm:text-base" style={{ fontFamily: "'Playfair Display', serif" }}>Fast Delivery</h3>
+              <p className="text-[10px] sm:text-sm text-[#D4C5AA]">3-5 days</p>
             </div>
           </div>
         </div>

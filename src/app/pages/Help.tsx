@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { HelpCircle, Mail, Phone, MessageCircle, Send, ChevronDown, ChevronUp, MapPin, ArrowLeft } from 'lucide-react';
 import type { User } from '../types';
 import { toast } from 'sonner';
+import axios from 'axios';
+
+const API_URL = 'http://localhost:3001/api';
 
 interface HelpProps {
   user: User | null;
@@ -408,18 +411,29 @@ export function Help({ user }: HelpProps) {
             )}
 
             <form
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
                 const formData = user ? {
+                  userId: user.id,
                   name: user.name,
                   email: user.email,
+                  userRole: user.role,
                   subject: supportForm.subject,
                   message: supportForm.message
-                } : supportForm;
+                } : {
+                  ...supportForm,
+                  userRole: 'guest'
+                };
 
                 if (formData.name && formData.email && formData.subject && formData.message) {
-                  toast.success('Support ticket submitted successfully! We will get back to you soon.');
-                  setSupportForm({ name: '', email: '', subject: '', message: '' });
+                  try {
+                    await axios.post(`${API_URL}/support`, formData);
+                    toast.success('Support ticket submitted successfully! We will get back to you soon.');
+                    setSupportForm({ name: '', email: '', subject: '', message: '' });
+                  } catch (error) {
+                    console.error('Error submitting ticket:', error);
+                    toast.error('Failed to submit ticket. Please try again.');
+                  }
                 } else {
                   toast.error('Please fill in all fields');
                 }

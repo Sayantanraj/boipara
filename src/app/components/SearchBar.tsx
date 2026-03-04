@@ -44,17 +44,24 @@ export default function SearchBar() {
         // Load from localStorage first for immediate display
         const localHistory = localStorage.getItem(`searchHistory_${userId}`);
         if (localHistory) {
-          setSearchHistory(JSON.parse(localHistory));
+          const parsed = JSON.parse(localHistory);
+          setSearchHistory(parsed);
+          // If localStorage has empty array, don't fetch from backend
+          if (parsed.length === 0) {
+            const popular = await apiService.getPopularSearches().catch(() => ['Engineering', 'Medical', 'UPSC', 'JEE', 'NEET']);
+            setPopularSearches(popular);
+            return;
+          }
         }
 
-        // Then fetch from backend
+        // Then fetch from backend only if localStorage doesn't have cleared state
         const [history, popular] = await Promise.all([
           userId ? apiService.getSearchHistory(userId).catch(() => []) : Promise.resolve([]),
           apiService.getPopularSearches().catch(() => ['Engineering', 'Medical', 'UPSC', 'JEE', 'NEET'])
         ]);
         
-        // Use backend data if available, otherwise keep localStorage data
-        if (history.length > 0) {
+        // Use backend data if available and localStorage wasn't explicitly cleared
+        if (history.length > 0 && !localHistory) {
           setSearchHistory(history);
           localStorage.setItem(`searchHistory_${userId}`, JSON.stringify(history));
         }
@@ -120,6 +127,22 @@ export default function SearchBar() {
     navigate(`/browse?search=${encodeURIComponent(searchQuery)}`);
     setShowDropdown(false);
     setQuery('');
+  };
+
+  const removeFromHistory = (e: React.MouseEvent, itemToRemove: string) => {
+    e.stopPropagation();
+    const newHistory = searchHistory.filter(item => item !== itemToRemove);
+    setSearchHistory(newHistory);
+    if (userId) {
+      localStorage.setItem(`searchHistory_${userId}`, JSON.stringify(newHistory));
+    }
+  };
+
+  const clearAllHistory = () => {
+    setSearchHistory([]);
+    if (userId) {
+      localStorage.setItem(`searchHistory_${userId}`, JSON.stringify([]));
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -238,17 +261,29 @@ export default function SearchBar() {
                     <Clock className="size-4 text-[#D4AF37]" />
                     <span className="text-xs font-semibold text-[#D4AF37]">Recent Searches</span>
                   </div>
-                  {searchHistory.map((item, idx) => (
+                  <div className="p-2 flex flex-wrap gap-2">
+                    {searchHistory.slice(0, 5).map((item, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => handleSearch(item)}
+                        className="px-3 py-1 text-[10px] bg-[#3D2817] hover:bg-[#8B6F47] text-[#F5E6D3] rounded-full transition-colors border border-[#8B6F47]/30 flex items-center gap-1"
+                      >
+                        {item}
+                        <X 
+                          className="size-3 hover:text-red-400" 
+                          onClick={(e) => removeFromHistory(e, item)}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                  <div className="px-3 pb-2">
                     <button
-                      key={idx}
-                      onClick={() => handleSearch(item)}
-                      className={`w-full px-4 py-2 text-left hover:bg-[#3D2817] transition-colors border-b border-[#8B6F47]/30 ${
-                        idx === selectedIndex ? 'bg-[#3D2817]' : ''
-                      }`}
+                      onClick={clearAllHistory}
+                      className="text-[10px] text-red-400 hover:text-red-300 underline"
                     >
-                      <p className="text-[#F5E6D3] text-sm">{item}</p>
+                      Clear All
                     </button>
-                  ))}
+                  </div>
                 </div>
               )}
               {popularSearches.length > 0 && (

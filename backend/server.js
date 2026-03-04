@@ -41,6 +41,8 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/returns', require('./routes/returns'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/search', require('./routes/autocomplete'));
+app.use('/api/reviews', require('./routes/reviews'));
+app.use('/api/support', require('./routes/support'));
 
 // Socket.io for real-time updates
 const customerConnections = new Map();

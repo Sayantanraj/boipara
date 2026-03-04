@@ -29,7 +29,10 @@ export function Navbar({ user, wishlist = [], notifications = [], onLogout, onMa
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showLocationSelector, setShowLocationSelector] = useState(false);
-  const [currentLocation, setCurrentLocation] = useState(user?.location || 'Newtown, Kolkata');
+  const [currentLocation, setCurrentLocation] = useState(() => {
+    const saved = localStorage.getItem('userLocation');
+    return saved || user?.location || 'Newtown, Kolkata';
+  });
 
   // Close notification dropdown when clicking outside
   useEffect(() => {
@@ -129,31 +132,37 @@ export function Navbar({ user, wishlist = [], notifications = [], onLogout, onMa
           >
             <MapPin className="size-4 text-[#D4AF37]" />
             <div>
-              <p className="text-xs text-[#A08968]">Delivering to</p>
-              <p className="text-sm font-semibold text-[#F5E6D3]">{userLocation.split(',')[0]}</p>
+              <p className="text-xs text-[#A08968]">
+                Deliver to {user ? user.name.split(' ')[0] : 'Guest'}
+              </p>
+              <p className="text-sm font-semibold text-[#F5E6D3] truncate max-w-[150px]">
+                {userLocation.split(',')[0]}
+              </p>
             </div>
           </button>
 
           {/* Search Bar - Desktop */}
-          <SearchBar />
+          <div className="hidden md:block flex-1">
+            <SearchBar />
+          </div>
 
           {/* Mobile Search Icon */}
           <button
             onClick={() => setShowSearch(!showSearch)}
-            className="md:hidden p-2 bg-[#3D2817] border-2 border-[#8B6F47] rounded-md"
+            className="md:hidden p-2 bg-[#3D2817] border-2 border-[#8B6F47] rounded-md ml-auto"
           >
             <Search className="size-5 text-[#D4AF37]" />
           </button>
 
           {/* Actions */}
-          <div className="flex items-center gap-1 sm:gap-3 ml-auto">
-            {/* Wishlist */}
+          <div className="flex items-center gap-1 sm:gap-3">
+            {/* Wishlist - Desktop Only */}
             {user?.role !== 'admin' && (
               <Link
                 to="/wishlist"
-                className="hidden sm:flex relative p-2 rounded-md bg-[#3D2817] border-2 border-[#8B6F47] hover:border-[#D4AF37] transition-colors"
+                className="hidden sm:flex relative p-2 rounded-md bg-[#3D2817] border-2 border-[#8B6F47] hover:border-[#D4AF37] transition-colors flex-shrink-0"
               >
-                <Heart className="size-5 sm:size-6 text-[#D4AF37]" />
+                <Heart className="size-5 text-[#D4AF37]" />
                 {wishlist.length > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full size-5 flex items-center justify-center">
                     {wishlist.length}
@@ -163,7 +172,7 @@ export function Navbar({ user, wishlist = [], notifications = [], onLogout, onMa
             )}
 
             {/* User Menu */}
-            <div className="relative user-menu-container">
+            <div className="relative user-menu-container flex-shrink-0">
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="flex items-center gap-2 px-1.5 sm:px-3 py-2 rounded-md bg-[#3D2817] border-2 border-[#8B6F47] hover:border-[#D4AF37] transition-colors"
@@ -190,6 +199,23 @@ export function Navbar({ user, wishlist = [], notifications = [], onLogout, onMa
                         <User className="size-4 text-[#D4AF37]" />
                         <span>View Profile</span>
                       </Link>
+                      {user.role !== 'admin' && (
+                        <Link
+                          to="/wishlist"
+                          className="sm:hidden flex items-center gap-2 px-4 py-2 hover:bg-[#4D3827] transition-colors text-sm text-[#F5E6D3]"
+                          onClick={() => setShowUserMenu(false)}
+                        >
+                          <Heart className="size-4 text-[#D4AF37]" />
+                          <div className="flex items-center gap-2">
+                            <span>Wishlist</span>
+                            {wishlist.length > 0 && (
+                              <span className="bg-red-600 text-white text-xs font-bold rounded-full px-2 py-0.5">
+                                {wishlist.length}
+                              </span>
+                            )}
+                          </div>
+                        </Link>
+                      )}
                       <Link
                         to={getDashboardLink()}
                         className="flex items-center gap-2 px-4 py-2 hover:bg-[#4D3827] transition-colors text-sm text-[#F5E6D3]"
@@ -246,10 +272,10 @@ export function Navbar({ user, wishlist = [], notifications = [], onLogout, onMa
             </div>
 
             {/* Notifications */}
-            <div className="relative notification-container">
+            <div className="relative notification-container flex-shrink-0">
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="flex items-center gap-2 px-1.5 sm:px-3 py-2 rounded-md bg-[#3D2817] border-2 border-[#8B6F47] hover:border-[#D4AF37] transition-colors"
+                className="relative flex items-center gap-2 px-1.5 sm:px-3 py-2 rounded-md bg-[#3D2817] border-2 border-[#8B6F47] hover:border-[#D4AF37] transition-colors"
               >
                 <Bell className="size-5 text-[#D4AF37]" />
                 {unreadCount > 0 && (
@@ -337,7 +363,7 @@ export function Navbar({ user, wishlist = [], notifications = [], onLogout, onMa
             {user?.role !== 'admin' && (
               <Link
                 to="/wishlist"
-                className="sm:hidden relative p-2 rounded-md bg-[#3D2817] border-2 border-[#8B6F47] hover:border-[#D4AF37] transition-colors"
+                className="hidden relative p-2 rounded-md bg-[#3D2817] border-2 border-[#8B6F47] hover:border-[#D4AF37] transition-colors flex-shrink-0"
               >
                 <Heart className="size-5 text-[#D4AF37]" />
                 {wishlist.length > 0 && (
@@ -351,7 +377,7 @@ export function Navbar({ user, wishlist = [], notifications = [], onLogout, onMa
             {/* Help & Support Button - Desktop Only */}
             <Link
               to="/help"
-              className="hidden sm:block p-2 rounded-md bg-[#3D2817] border-2 border-[#8B6F47] hover:border-[#D4AF37] transition-colors"
+              className="hidden sm:block p-2 rounded-md bg-[#3D2817] border-2 border-[#8B6F47] hover:border-[#D4AF37] transition-colors flex-shrink-0"
               title="Help & Support"
             >
               <HelpCircle className="size-5 text-[#D4AF37]" />
@@ -361,10 +387,10 @@ export function Navbar({ user, wishlist = [], notifications = [], onLogout, onMa
             {user?.role !== 'admin' && (
               <Link
                 to="/cart"
-                className="relative flex items-center gap-2 px-1.5 sm:px-3 py-2 rounded-md bg-[#3D2817] border-2 border-[#8B6F47] hover:border-[#D4AF37] transition-colors"
+                className="relative flex items-center gap-2 px-1.5 sm:px-3 py-2 rounded-md bg-[#3D2817] border-2 border-[#8B6F47] hover:border-[#D4AF37] transition-colors flex-shrink-0"
               >
                 <div className="relative">
-                  <ShoppingCart className="size-5 sm:size-6 text-[#D4AF37]" />
+                  <ShoppingCart className="size-5 text-[#D4AF37]" />
                   {cartCount > 0 && (
                     <span className="absolute -top-1 -right-1 bg-[#D4AF37] text-[#2C1810] text-xs font-bold rounded-full min-w-[1.25rem] h-5 flex items-center justify-center px-1">
                       {cartCount}
@@ -398,6 +424,22 @@ export function Navbar({ user, wishlist = [], notifications = [], onLogout, onMa
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           {/* Mobile: Hamburger Menu */}
           <div className="md:hidden relative">
+            {/* Location Button - Mobile */}
+            <button
+              onClick={() => setShowLocationSelector(true)}
+              className="w-full flex items-center gap-2 px-3 py-2 mb-2 bg-[#2C1810] rounded-md border border-[#8B6F47] hover:border-[#D4AF37] transition-colors"
+            >
+              <MapPin className="size-4 text-[#D4AF37]" />
+              <div className="text-left flex-1">
+                <p className="text-xs text-[#A08968]">
+                  Deliver to {user ? user.name.split(' ')[0] : 'Guest'}
+                </p>
+                <p className="text-sm font-semibold text-[#F5E6D3] truncate">
+                  {userLocation.split(',')[0]}
+                </p>
+              </div>
+            </button>
+            
             <button
               onClick={() => setShowCategoryMenu(!showCategoryMenu)}
               className="w-full flex items-center justify-between py-2.5 text-sm font-medium text-[#F5E6D3] hover:text-[#D4AF37] transition-colors"

@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Navbar } from '../components/Navbar';
-import { Star, ShoppingBag, Heart, Share2, Truck, ArrowLeft, MapPin, Award, Clock, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ShareModal } from '../components/ShareModal';
+import { Star, ShoppingBag, Heart, Share2, Truck, ArrowLeft, MapPin, Award, Clock, CheckCircle, ChevronLeft, ChevronRight, X, ThumbsUp, MoreVertical } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
 import { apiService } from '../../services/api';
@@ -16,6 +17,7 @@ export function ProductPage() {
   const [book, setBook] = useState<Book | null>(null);
   const [loading, setLoading] = useState(true);
   const [wishlist, setWishlist] = useState<string[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
   
   // Load book from API
   useEffect(() => {
@@ -36,6 +38,15 @@ export function ProductPage() {
           sellerName: bookData.sellerName || (bookData.sellerId?.storeName || bookData.sellerId?.name) || 'Unknown Seller'
         };
         setBook(processedBook);
+        
+        // Load reviews (don't fail if this errors)
+        try {
+          const reviewsData = await apiService.getBookReviews(bookData._id || id);
+          setReviews(reviewsData || []);
+        } catch (error) {
+          console.error('Error loading reviews:', error);
+          setReviews([]);
+        }
       } catch (error) {
         console.error('Error loading book:', error);
         setBook(null);
@@ -117,14 +128,37 @@ export function ProductPage() {
     );
   }
 
-  return <CustomerView book={book} user={user} wishlist={wishlist} onLogout={logout} addToCart={addToCart} onToggleWishlist={handleToggleWishlist} navigate={navigate} notifications={notifications} markNotificationRead={markNotificationRead} markAllNotificationsRead={markAllNotificationsRead} deleteNotification={deleteNotification} />;
+  return <CustomerView book={book} user={user} wishlist={wishlist} onLogout={logout} addToCart={addToCart} onToggleWishlist={handleToggleWishlist} navigate={navigate} notifications={notifications} markNotificationRead={markNotificationRead} markAllNotificationsRead={markAllNotificationsRead} deleteNotification={deleteNotification} reviews={reviews} />;
 }
 
 // Customer Shopping View
-function CustomerView({ book, user, wishlist, onLogout, addToCart, onToggleWishlist, navigate, notifications, markNotificationRead, markAllNotificationsRead, deleteNotification }: any) {
+function CustomerView({ book, user, wishlist, onLogout, addToCart, onToggleWishlist, navigate, notifications, markNotificationRead, markAllNotificationsRead, deleteNotification, reviews }: any) {
   const [pincode, setPincode] = useState('');
   const [deliveryChecked, setDeliveryChecked] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [viewingImageIndex, setViewingImageIndex] = useState<number | null>(null);
+  const [allReviewImages, setAllReviewImages] = useState<string[]>([]);
+  const [showAllImagesPage, setShowAllImagesPage] = useState(false);
+  const [showAllReviewsPage, setShowAllReviewsPage] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(0);
+  const [sortBy, setSortBy] = useState('helpful');
+  const [expandedReviews, setExpandedReviews] = useState<Set<string>>(new Set());
+  const [filteredReviews, setFilteredReviews] = useState<any[]>([]);
+  const [likedReviews, setLikedReviews] = useState<Set<string>>(new Set());
+  const galleryRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (user && filteredReviews.length > 0) {
+      const liked = new Set<string>();
+      filteredReviews.forEach((r: any) => {
+        if (r.helpfulVotes?.includes(user.id)) {
+          liked.add(r._id);
+        }
+      });
+      setLikedReviews(liked);
+    }
+  }, [filteredReviews, user]);
 
   const defaultImage = 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400';
   const bookImages = book.image
@@ -161,6 +195,17 @@ function CustomerView({ book, user, wishlist, onLogout, addToCart, onToggleWishl
       setDeliveryChecked(true);
     }
   };
+
+  useEffect(() => {
+    const calc = () => {
+      if (!galleryRef.current) return;
+      const w = galleryRef.current.offsetWidth;
+      setVisibleCount(Math.floor(w / 104));
+    };
+    calc();
+    window.addEventListener('resize', calc);
+    return () => window.removeEventListener('resize', calc);
+  }, [reviews]);
 
   const getConditionBadge = () => {
     const badges = {
@@ -369,7 +414,10 @@ function CustomerView({ book, user, wishlist, onLogout, addToCart, onToggleWishl
                   >
                     <Heart className={`size-5 ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-[#D4AF37]'}`} />
                   </button>
-                  <button className="bg-[#2C1810] hover:bg-[#3D2817] border-2 border-[#8B6F47] p-3 sm:p-2.5 lg:p-3 rounded-md transition-all flex-1 sm:flex-none">
+                  <button 
+                    onClick={() => setIsShareModalOpen(true)}
+                    className="bg-[#2C1810] hover:bg-[#3D2817] border-2 border-[#8B6F47] p-3 sm:p-2.5 lg:p-3 rounded-md transition-all flex-1 sm:flex-none"
+                  >
                     <Share2 className="size-5 text-[#D4AF37]" />
                   </button>
                 </div>
@@ -497,7 +545,240 @@ function CustomerView({ book, user, wishlist, onLogout, addToCart, onToggleWishl
             </div>
           </div>
         </div>
+
+        {/* Ratings & Reviews Section */}
+        {reviews && reviews.length > 0 && (
+          <div className="mt-8 bg-[#3D2817] rounded-lg p-6 border-2 border-[#8B6F47] shadow-xl">
+            <h2 className="font-bold text-[#D4AF37] mb-4 text-xl" style={{ fontFamily: "'Playfair Display', serif" }}>
+              Ratings & Reviews ({reviews.length})
+            </h2>
+            
+            {/* Review Images Gallery */}
+            {(() => {
+              const allImages = reviews.flatMap((r: any) => r.images || []);
+              
+              return allImages.length > 0 && (
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-[#F5E6D3] text-sm">Customer Images ({allImages.length})</h3>
+                    <button
+                      onClick={() => {
+                        setAllReviewImages(allImages);
+                        setShowAllImagesPage(true);
+                      }}
+                      className="text-[#D4AF37] hover:text-[#F5E6D3] font-semibold text-sm transition-colors"
+                    >
+                      View All {allImages.length} Images
+                    </button>
+                  </div>
+                  <div ref={galleryRef} className="flex gap-2">
+                    {allImages.slice(0, visibleCount).map((img: string, idx: number) => (
+                      <img
+                        key={idx}
+                        src={img}
+                        alt="Customer"
+                        onClick={() => {
+                          setAllReviewImages(allImages);
+                          setViewingImageIndex(idx);
+                        }}
+                        className="w-24 h-24 object-cover rounded border-2 border-[#8B6F47] cursor-pointer hover:border-[#D4AF37] transition-colors flex-shrink-0"
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+            
+            <div className="space-y-4">
+              {reviews.slice(0, 3).map((review: any) => (
+                <div key={review._id} className="bg-[#2C1810] rounded-lg p-4 border border-[#8B6F47]">
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <p className="font-semibold text-[#F5E6D3]">{review.userName}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="flex items-center gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`size-4 ${
+                                star <= review.rating
+                                  ? 'fill-[#D4AF37] text-[#D4AF37]'
+                                  : 'text-[#8B6F47]'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-xs text-[#D4C5AA]">
+                          {new Date(review.createdAt).toLocaleDateString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric'
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-[#D4C5AA] text-sm leading-relaxed">{review.feedback}</p>
+                </div>
+              ))}
+            </div>
+            
+            {reviews.length > 3 && (
+              <button
+                onClick={() => {setShowAllReviewsPage(true);setFilteredReviews(reviews);}}
+                className="mt-4 w-full bg-[#2C1810] hover:bg-[#8B6F47] border-2 border-[#8B6F47] text-[#D4AF37] hover:text-[#F5E6D3] font-semibold py-2 rounded-lg transition-colors"
+              >
+                View All {reviews.length} Reviews
+              </button>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Share Modal */}
+      <ShareModal 
+        isOpen={isShareModalOpen} 
+        onClose={() => setIsShareModalOpen(false)} 
+        book={book} 
+      />
+
+      {/* All Reviews Page */}
+      {showAllReviewsPage && (
+        <div className="fixed inset-0 bg-[#F5E6D3] z-50 overflow-y-auto">
+          <Navbar user={user} onLogout={onLogout} notifications={notifications} onMarkNotificationRead={markNotificationRead} onMarkAllRead={markAllNotificationsRead} onDeleteNotification={deleteNotification} />
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+            <button
+              onClick={() => setShowAllReviewsPage(false)}
+              className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-[#3D2817] border border-[#8B6F47] hover:bg-[#D4AF37] text-[#D4AF37] hover:text-white transition-all shadow-sm hover:shadow-md mb-4 sm:mb-6"
+            >
+              <ArrowLeft className="size-5" />
+            </button>
+            <h1 className="text-2xl font-bold text-[#2C1810] mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>
+              All Reviews ({filteredReviews.length})
+            </h1>
+            
+            <div className="mb-6 bg-[#3D2817] rounded-lg p-4 border-2 border-[#8B6F47]">
+              <p className="text-[#D4C5AA] text-sm mb-3">User reviews sorted by</p>
+              <div className="grid grid-cols-4 gap-1">
+                {[{id:'helpful',label:'Most Helpful'},{id:'latest',label:'Latest'},{id:'positive',label:'Positive'},{id:'negative',label:'Negative'}].map(s=>(
+                  <button key={s.id} onClick={async()=>{console.log('Clicked:',s.id);setSortBy(s.id);const r=await apiService.getBookReviews(bookId,s.id);console.log('Fetched reviews:',r.length,'for sort:',s.id);setFilteredReviews(r||[]);}} className={`px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors ${sortBy===s.id?'bg-[#D4AF37] text-[#2C1810]':'bg-[#2C1810] text-[#D4C5AA] hover:bg-[#8B6F47]'}`}>{s.label}</button>
+                ))}
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              {filteredReviews.map((review: any) => {
+                const isExpanded = expandedReviews.has(review._id);
+                const needsTruncate = review.feedback.length > 200;
+                return (
+                  <div key={review._id} className="bg-[#3D2817] rounded-lg p-5 border-2 border-[#8B6F47]">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-bold text-[#F5E6D3]">{review.userName}</p>
+                          {review.verifiedPurchase && <span className="bg-emerald-700 text-white text-xs px-2 py-0.5 rounded">Verified Purchase</span>}
+                        </div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="flex items-center gap-1">
+                            {[1,2,3,4,5].map(s=>(<Star key={s} className={`size-4 ${s<=review.rating?'fill-[#D4AF37] text-[#D4AF37]':'text-[#8B6F47]'}`}/>))}
+                          </div>
+                          <span className="text-[#D4AF37] font-bold text-sm">{review.rating}.0</span>
+                          <span className="text-[#D4C5AA] text-xs">{new Date(review.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</span>
+                        </div>
+                        {review.title && <p className="font-semibold text-[#F5E6D3] mb-2">{review.title}</p>}
+                      </div>
+                    </div>
+                    <p className="text-[#D4C5AA] text-sm leading-relaxed mb-3">
+                      {isExpanded || !needsTruncate ? review.feedback : `${review.feedback.slice(0,200)}...`}
+                      {needsTruncate && (
+                        <button onClick={()=>setExpandedReviews(p=>{const n=new Set(p);isExpanded?n.delete(review._id):n.add(review._id);return n;})} className="text-[#D4AF37] ml-1 font-semibold">{isExpanded?'less':'more'}</button>
+                      )}
+                    </p>
+                    <div className="flex items-center gap-4">
+                      <button onClick={async()=>{const isLiked=likedReviews.has(review._id);try{if(isLiked){await apiService.removeReviewHelpful(review._id);setLikedReviews(p=>{const n=new Set(p);n.delete(review._id);return n;});toast.success('Removed helpful mark');}else{await apiService.markReviewHelpful(review._id);setLikedReviews(p=>new Set(p).add(review._id));toast.success('Marked as helpful');}const r=await apiService.getBookReviews(bookId,sortBy);setFilteredReviews(r||[]);}catch(e){console.error(e);}}} className="flex items-center gap-2 text-[#D4C5AA] hover:text-[#D4AF37] transition-colors">
+                        <ThumbsUp className={`size-4 ${likedReviews.has(review._id)?'fill-white text-white':''}` }/>
+                        <span className="text-sm">Helpful ({review.helpfulCount||0})</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* All Images Page */}
+      {showAllImagesPage && (
+        <div className="fixed inset-0 bg-[#F5E6D3] z-50 overflow-y-auto">
+          <Navbar user={user} onLogout={onLogout} notifications={notifications} onMarkNotificationRead={markNotificationRead} onMarkAllRead={markAllNotificationsRead} onDeleteNotification={deleteNotification} />
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+            <button
+              onClick={() => setShowAllImagesPage(false)}
+              className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-[#3D2817] border border-[#8B6F47] hover:bg-[#D4AF37] text-[#D4AF37] hover:text-white transition-all shadow-sm hover:shadow-md mb-4 sm:mb-6"
+            >
+              <ArrowLeft className="size-5" />
+            </button>
+            <h1 className="text-2xl font-bold text-[#2C1810] mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>
+              Customer Images ({allReviewImages.length})
+            </h1>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {allReviewImages.map((img: string, idx: number) => (
+                <img
+                  key={idx}
+                  src={img}
+                  alt="Customer"
+                  onClick={() => setViewingImageIndex(idx)}
+                  className="w-full aspect-square object-cover rounded-lg border-2 border-[#8B6F47] cursor-pointer hover:border-[#D4AF37] transition-colors shadow-md"
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Viewer Modal */}
+      {viewingImageIndex !== null && allReviewImages.length > 0 && (
+        <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-50" onClick={() => setViewingImageIndex(null)}>
+          <button
+            onClick={() => setViewingImageIndex(null)}
+            className="absolute top-4 right-4 text-white hover:text-[#D4AF37] transition-colors z-10"
+          >
+            <X className="size-8" />
+          </button>
+          
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setViewingImageIndex(viewingImageIndex > 0 ? viewingImageIndex - 1 : allReviewImages.length - 1);
+            }}
+            className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white p-3 rounded-full transition-all z-10"
+          >
+            <ChevronLeft className="size-8" />
+          </button>
+          
+          <div className="max-w-4xl max-h-[90vh] flex flex-col items-center" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={allReviewImages[viewingImageIndex]}
+              alt="Customer review"
+              className="max-w-full max-h-[80vh] object-contain rounded-lg"
+            />
+            <p className="text-white mt-4 text-sm">
+              {viewingImageIndex + 1} / {allReviewImages.length}
+            </p>
+          </div>
+          
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setViewingImageIndex(viewingImageIndex < allReviewImages.length - 1 ? viewingImageIndex + 1 : 0);
+            }}
+            className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white p-3 rounded-full transition-all z-10"
+          >
+            <ChevronRight className="size-8" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

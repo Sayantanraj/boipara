@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Navbar } from '../components/Navbar';
 import { Invoice } from '../components/Invoice';
 import { ReturnRequestModal } from '../components/ReturnRequestModal';
-import { Package, Clock, Truck, CheckCircle, X, MapPin, CreditCard, FileText, PackageCheck, ClipboardList, RotateCcw } from 'lucide-react';
+import { Package, Clock, Truck, CheckCircle, X, MapPin, CreditCard, FileText, PackageCheck, ClipboardList, RotateCcw, Star } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiService } from '../../services/api';
 import type { Order, TrackingUpdate } from '../types';
@@ -19,6 +19,13 @@ export function OrdersPage() {
   const [trackingOrder, setTrackingOrder] = useState<Order | null>(null);
   const [returningOrder, setReturningOrder] = useState<Order | null>(null);
   const [viewingReturnStatus, setViewingReturnStatus] = useState<any | null>(null);
+  const [reviewingOrder, setReviewingOrder] = useState<Order | null>(null);
+  const [rating, setRating] = useState(0);
+  const [feedback, setFeedback] = useState('');
+  const [existingReview, setExistingReview] = useState<any>(null);
+  const [loadingReview, setLoadingReview] = useState(false);
+  const [reviewImages, setReviewImages] = useState<string[]>([]);
+  const [isEditingReview, setIsEditingReview] = useState(false);
 
   // Get admin user for invoice
   const adminUser = mockUsers.find(u => u.role === 'admin') || null;
@@ -226,25 +233,25 @@ export function OrdersPage() {
         ) : (
           <div className="space-y-4">
             {orders.map((order) => (
-              <div key={order.id} className="bg-[#3D2817] rounded-lg p-6 border-2 border-[#8B6F47] shadow-lg">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-[#8B6F47] p-3 rounded-lg shadow-md">
-                      <Package className="size-6 text-[#F5E6D3]" />
+              <div key={order.id} className="bg-[#3D2817] rounded-lg p-4 sm:p-6 border-2 border-[#8B6F47] shadow-lg">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-[#8B6F47] p-2 sm:p-3 rounded-lg shadow-md flex-shrink-0">
+                      <Package className="size-5 sm:size-6 text-[#F5E6D3]" />
                     </div>
-                    <div>
-                      <p className="font-bold text-[#F5E6D3]">Order {order.id}</p>
-                      <p className="text-sm text-[#D4C5AA]">{order.date}</p>
+                    <div className="min-w-0">
+                      <p className="font-bold text-[#F5E6D3] text-sm sm:text-base truncate">Order {order.id}</p>
+                      <p className="text-xs sm:text-sm text-[#D4C5AA]">{order.date}</p>
                     </div>
                   </div>
-                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border-2 font-bold text-sm ${getStatusColor(order.status)}`}>
+                  <div className={`flex items-center gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border-2 font-bold text-xs sm:text-sm ${getStatusColor(order.status)} self-start sm:self-auto`}>
                     {getStatusIcon(order.status)}
-                    {order.status === 'new' ? 'Order Placed' : order.status === 'placed' ? 'Order Placed' : order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                    <span className="whitespace-nowrap">{order.status === 'new' ? 'Order Placed' : order.status === 'placed' ? 'Order Placed' : order.status.charAt(0).toUpperCase() + order.status.slice(1)}</span>
                   </div>
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div>
-                    <p className="text-sm text-[#D4C5AA] mb-1">{order.items.length} items</p>
+                    <p className="text-xs sm:text-sm text-[#D4C5AA] mb-1">{order.items.length} items</p>
                     <div className="text-xs text-[#A08968] mb-2 max-w-xs">
                       {order.items.slice(0, 2).map((item: any, idx: number) => (
                         <span key={idx}>
@@ -254,11 +261,38 @@ export function OrdersPage() {
                       ))}
                       {order.items.length > 2 && ` +${order.items.length - 2} more`}
                     </div>
-                    <p className="font-bold text-[#D4AF37] text-lg">₹{order.total}</p>
+                    <p className="font-bold text-[#D4AF37] text-base sm:text-lg">₹{order.total}</p>
                   </div>
-                  <button className="bg-gradient-to-r from-[#8B6F47] to-[#6B5537] hover:from-[#D4AF37] hover:to-[#B8941F] text-[#F5E6D3] font-bold px-6 py-2 rounded-md transition-all shadow-md" onClick={() => handleViewOrder(order)}>
-                    View Details
-                  </button>
+                  <div className="flex gap-2 flex-wrap">
+                    <button className="bg-gradient-to-r from-[#8B6F47] to-[#6B5537] hover:from-[#D4AF37] hover:to-[#B8941F] text-[#F5E6D3] font-bold px-3 sm:px-6 py-1.5 sm:py-2 text-xs sm:text-sm rounded-md transition-all shadow-md" onClick={() => handleViewOrder(order)}>
+                      View Details
+                    </button>
+                    {order.status === 'delivered' && (
+                      <button
+                        onClick={async () => {
+                          setReviewingOrder(order);
+                          setLoadingReview(true);
+                          try {
+                            const review = await apiService.getReviewByOrder(order.id);
+                            if (review) {
+                              setExistingReview(review);
+                              setRating(review.rating);
+                              setFeedback(review.feedback);
+                              setReviewImages(review.images || []);
+                            }
+                          } catch (error) {
+                            console.error('Error loading review:', error);
+                          } finally {
+                            setLoadingReview(false);
+                          }
+                        }}
+                        className="bg-gradient-to-r from-[#D4AF37] to-[#B8941F] hover:from-[#B8941F] hover:to-[#D4AF37] text-[#2C1810] font-bold px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-md transition-all shadow-md flex items-center gap-1 sm:gap-2"
+                      >
+                        <Star className="size-3 sm:size-4" />
+                        Rate
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -402,7 +436,7 @@ export function OrdersPage() {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex gap-3 flex-wrap">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {viewingOrder.status === 'delivered' && (
                     <>
                       <button
@@ -410,10 +444,20 @@ export function OrdersPage() {
                           setShowInvoice(viewingOrder);
                           setViewingOrder(null);
                         }}
-                        className="flex-1 bg-gradient-to-r from-emerald-700 to-emerald-600 hover:from-emerald-600 hover:to-emerald-500 text-white font-bold py-3 rounded-md transition-all flex items-center justify-center gap-2 shadow-lg"
+                        className="bg-gradient-to-r from-emerald-700 to-emerald-600 hover:from-emerald-600 hover:to-emerald-500 text-white font-bold py-2.5 sm:py-3 rounded-md transition-all flex items-center justify-center gap-2 shadow-lg text-sm sm:text-base"
                       >
-                        <FileText className="size-5" />
+                        <FileText className="size-4 sm:size-5" />
                         View Invoice
+                      </button>
+                      <button
+                        onClick={() => {
+                          setReviewingOrder(viewingOrder);
+                          setViewingOrder(null);
+                        }}
+                        className="bg-gradient-to-r from-[#D4AF37] to-[#B8941F] hover:from-[#B8941F] hover:to-[#D4AF37] text-[#2C1810] font-bold py-2.5 sm:py-3 rounded-md transition-all flex items-center justify-center gap-2 shadow-lg text-sm sm:text-base"
+                      >
+                        <Star className="size-4 sm:size-5" />
+                        Rate & Review
                       </button>
                       {!hasReturnRequest(viewingOrder.id) && (
                         <button
@@ -421,9 +465,9 @@ export function OrdersPage() {
                             setReturningOrder(viewingOrder);
                             setViewingOrder(null);
                           }}
-                          className="flex-1 bg-gradient-to-r from-orange-700 to-orange-600 hover:from-orange-600 hover:to-orange-500 text-white font-bold py-3 rounded-md transition-all flex items-center justify-center gap-2 shadow-lg"
+                          className="bg-gradient-to-r from-orange-700 to-orange-600 hover:from-orange-600 hover:to-orange-500 text-white font-bold py-2.5 sm:py-3 rounded-md transition-all flex items-center justify-center gap-2 shadow-lg text-sm sm:text-base"
                         >
-                          <RotateCcw className="size-5" />
+                          <RotateCcw className="size-4 sm:size-5" />
                           Request Return
                         </button>
                       )}
@@ -434,10 +478,22 @@ export function OrdersPage() {
                             setViewingReturnStatus(returnReq);
                             setViewingOrder(null);
                           }}
-                          className="flex-1 bg-gradient-to-r from-blue-700 to-blue-600 hover:from-blue-600 hover:to-blue-500 text-white font-bold py-3 rounded-md transition-all flex items-center justify-center gap-2 shadow-lg"
+                          className="bg-gradient-to-r from-blue-700 to-blue-600 hover:from-blue-600 hover:to-blue-500 text-white font-bold py-2.5 sm:py-3 rounded-md transition-all flex items-center justify-center gap-2 shadow-lg text-sm sm:text-base"
                         >
-                          <ClipboardList className="size-5" />
+                          <ClipboardList className="size-4 sm:size-5" />
                           View Return Status
+                        </button>
+                      )}
+                      {(['accepted', 'packed', 'shipped', 'delivered'].includes(viewingOrder.status)) && (
+                        <button
+                          onClick={() => {
+                            setTrackingOrder(viewingOrder);
+                            setViewingOrder(null);
+                          }}
+                          className="bg-gradient-to-r from-blue-700 to-blue-600 hover:from-blue-600 hover:to-blue-500 text-white font-bold py-2.5 sm:py-3 rounded-md transition-all flex items-center justify-center gap-2 shadow-lg text-sm sm:text-base"
+                        >
+                          <Truck className="size-4 sm:size-5" />
+                          Track Order
                         </button>
                       )}
                     </>
@@ -445,27 +501,27 @@ export function OrdersPage() {
                   {(['new', 'placed', 'pending', 'processing', 'accepted', 'packed'].includes(viewingOrder.status)) && viewingOrder.status !== 'cancelled' && (
                     <button
                       onClick={() => handleCancelOrder(viewingOrder.id)}
-                      className="flex-1 bg-red-700 hover:bg-red-600 text-white font-bold py-3 rounded-md transition-all flex items-center justify-center gap-2"
+                      className="bg-gradient-to-r from-red-700 to-red-600 hover:from-red-600 hover:to-red-500 text-white font-bold py-2.5 sm:py-3 rounded-md transition-all flex items-center justify-center gap-2 shadow-lg text-sm sm:text-base"
                     >
-                      <X className="size-5" />
+                      <X className="size-4 sm:size-5" />
                       Cancel Order
                     </button>
                   )}
-                  {(['accepted', 'packed', 'shipped', 'delivered'].includes(viewingOrder.status)) && (
+                  {!viewingOrder.status.includes('delivered') && (['accepted', 'packed', 'shipped'].includes(viewingOrder.status)) && (
                     <button
                       onClick={() => {
                         setTrackingOrder(viewingOrder);
                         setViewingOrder(null);
                       }}
-                      className="flex-1 bg-blue-700 hover:bg-blue-600 text-white font-bold py-3 rounded-md transition-all flex items-center justify-center gap-2"
+                      className="bg-gradient-to-r from-blue-700 to-blue-600 hover:from-blue-600 hover:to-blue-500 text-white font-bold py-2.5 sm:py-3 rounded-md transition-all flex items-center justify-center gap-2 shadow-lg text-sm sm:text-base"
                     >
-                      <Truck className="size-5" />
+                      <Truck className="size-4 sm:size-5" />
                       Track Order
                     </button>
                   )}
                   <button
                     onClick={() => setViewingOrder(null)}
-                    className="flex-1 bg-[#8B6F47] hover:bg-[#D4AF37] text-[#F5E6D3] font-bold py-3 rounded-md transition-all"
+                    className="sm:col-span-2 bg-gradient-to-r from-[#8B6F47] to-[#6B5537] hover:from-[#D4AF37] hover:to-[#B8941F] text-[#F5E6D3] font-bold py-2.5 sm:py-3 rounded-md transition-all shadow-lg text-sm sm:text-base"
                   >
                     Close
                   </button>
@@ -727,6 +783,184 @@ export function OrdersPage() {
                 >
                   Close
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Review Modal */}
+        {reviewingOrder && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => {
+            setReviewingOrder(null);
+            setRating(0);
+            setFeedback('');
+            setReviewImages([]);
+            setExistingReview(null);
+          }}>
+            <div className="bg-[#3D2817] rounded-lg border-2 border-[#8B6F47] shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-[#D4AF37]" style={{ fontFamily: "'Playfair Display', serif" }}>
+                    {existingReview ? 'Your Review' : 'Rate & Review'}
+                  </h2>
+                  <button onClick={() => {
+                    setReviewingOrder(null);
+                    setRating(0);
+                    setFeedback('');
+                    setReviewImages([]);
+                    setExistingReview(null);
+                  }} className="text-[#D4C5AA] hover:text-[#D4AF37]">
+                    <X className="size-6" />
+                  </button>
+                </div>
+                {loadingReview ? (
+                  <div className="text-center py-8 text-[#D4C5AA]">Loading...</div>
+                ) : (
+                  <>
+                    <div className="mb-4">
+                      <p className="text-sm text-[#D4C5AA] mb-2">Order {reviewingOrder.id}</p>
+                      <p className="text-[#F5E6D3] font-semibold">{existingReview ? 'You reviewed this order' : 'How was your experience?'}</p>
+                      {existingReview && (
+                        <p className="text-xs text-[#A08968] mt-1">Reviewed on {new Date(existingReview.createdAt).toLocaleDateString()}</p>
+                      )}
+                    </div>
+                    <div className="mb-6">
+                      <p className="text-sm text-[#D4C5AA] mb-3">Rating</p>
+                      <div className="flex gap-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            onClick={() => (existingReview && !isEditingReview) ? null : setRating(star)}
+                            disabled={existingReview && !isEditingReview}
+                            className="transition-transform hover:scale-110 disabled:cursor-not-allowed"
+                          >
+                            <Star
+                              className={`size-8 ${star <= rating ? 'fill-[#D4AF37] text-[#D4AF37]' : 'text-[#8B6F47]'}`}
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="mb-6">
+                      <label className="text-sm text-[#D4C5AA] mb-2 block">Feedback</label>
+                      <textarea
+                        value={feedback}
+                        onChange={(e) => (existingReview && !isEditingReview) ? null : setFeedback(e.target.value)}
+                        disabled={existingReview && !isEditingReview}
+                        placeholder="Share your experience..."
+                        className="w-full bg-[#2C1810] border-2 border-[#8B6F47] rounded-lg p-3 text-[#F5E6D3] placeholder-[#A08968] focus:outline-none focus:border-[#D4AF37] min-h-[120px] disabled:opacity-60 disabled:cursor-not-allowed"
+                      />
+                    </div>
+                    <div className="mb-6">
+                      <label className="text-sm text-[#D4C5AA] mb-2 block">Upload Images (Optional)</label>
+                      {(!existingReview || isEditingReview) && (
+                        <label className="block cursor-pointer">
+                          <span className="inline-block bg-[#8B6F47] hover:bg-[#D4AF37] text-[#F5E6D3] font-semibold py-2 px-4 rounded transition-colors">
+                            Choose File
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={(e) => {
+                              const files = Array.from(e.target.files || []);
+                              files.forEach(file => {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                  setReviewImages(prev => [...prev, reader.result as string]);
+                                };
+                                reader.readAsDataURL(file);
+                              });
+                              e.target.value = '';
+                            }}
+                            className="hidden"
+                          />
+                        </label>
+                      )}
+                      {reviewImages.length > 0 && (
+                        <div className="flex gap-2 flex-wrap mt-3">
+                          {reviewImages.map((img, idx) => (
+                            <div key={idx} className="relative">
+                              <img src={img} alt="Review" className="w-20 h-20 object-cover rounded border-2 border-[#8B6F47]" />
+                              {(!existingReview || isEditingReview) && (
+                                <button
+                                  onClick={() => setReviewImages(reviewImages.filter((_, i) => i !== idx))}
+                                  className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                                >
+                                  ×
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => {
+                          setReviewingOrder(null);
+                          setRating(0);
+                          setFeedback('');
+                          setReviewImages([]);
+                          setExistingReview(null);
+                          setIsEditingReview(false);
+                        }}
+                        className="flex-1 bg-[#8B6F47] hover:bg-[#A08968] text-[#F5E6D3] font-bold py-3 rounded-md transition-all"
+                      >
+                        Close
+                      </button>
+                      {existingReview && !isEditingReview && (
+                        <button
+                          onClick={() => setIsEditingReview(true)}
+                          className="flex-1 bg-gradient-to-r from-[#D4AF37] to-[#B8941F] hover:from-[#B8941F] hover:to-[#D4AF37] text-[#2C1810] font-bold py-3 rounded-md transition-all"
+                        >
+                          Edit Review
+                        </button>
+                      )}
+                      {(!existingReview || isEditingReview) && (
+                        <button
+                          onClick={async () => {
+                            if (!rating || !feedback.trim()) {
+                              toast.error('Please provide rating and feedback');
+                              return;
+                            }
+                            try {
+                              if (isEditingReview && existingReview) {
+                                await apiService.updateReview(existingReview._id, {
+                                  rating,
+                                  feedback,
+                                  images: reviewImages
+                                });
+                                toast.success('Review updated successfully!');
+                              } else {
+                                await apiService.createReview({
+                                  orderId: reviewingOrder.id,
+                                  bookId: reviewingOrder.items[0]?.bookId || reviewingOrder.items[0]?.book?._id,
+                                  rating,
+                                  feedback,
+                                  images: reviewImages
+                                });
+                                toast.success('Review submitted successfully!');
+                              }
+                              setReviewingOrder(null);
+                              setRating(0);
+                              setFeedback('');
+                              setReviewImages([]);
+                              setExistingReview(null);
+                              setIsEditingReview(false);
+                            } catch (error: any) {
+                              console.error('Error submitting review:', error);
+                              toast.error(error.message || 'Failed to submit review');
+                            }
+                          }}
+                          className="flex-1 bg-gradient-to-r from-[#D4AF37] to-[#B8941F] hover:from-[#B8941F] hover:to-[#D4AF37] text-[#2C1810] font-bold py-3 rounded-md transition-all"
+                        >
+                          {isEditingReview ? 'Update Review' : 'Submit Review'}
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
