@@ -9,7 +9,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: { 
-    origin: process.env.FRONTEND_URL || "http://localhost:5173", 
+    origin: ["http://localhost:5173", "https://boipara.onrender.com", process.env.FRONTEND_URL].filter(Boolean), 
     methods: ["GET", "POST"] 
   }
 });
@@ -17,6 +17,7 @@ const io = socketIo(server, {
 // Middleware
 const allowedOrigins = [
   'http://localhost:5173',
+  'https://boipara.onrender.com',
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
@@ -48,6 +49,11 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/boipara')
     }
   })
   .catch(err => console.error('MongoDB connection error:', err));
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', message: 'Backend server is running' });
+});
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
