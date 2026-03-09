@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
+    "build": "echo 'No build step required for Node.js backend'",
     "seed": "node seed.js"
   },
   "dependencies": {
