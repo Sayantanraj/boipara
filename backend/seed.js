@@ -14,12 +14,12 @@ const seedData = async () => {
     await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/boipara');
     console.log('Connected to MongoDB');
 
-    // Clear existing data
+    // Clear existing data (except buyback requests)
     await User.deleteMany({});
     await Book.deleteMany({});
     await Order.deleteMany({});
-    await BuybackRequest.deleteMany({});
-    console.log('Cleared existing data');
+    // await BuybackRequest.deleteMany({}); // DISABLED - Keep real buyback data
+    console.log('Cleared existing data (preserved buyback requests)');
 
     // Create users
     const hashedPassword = await bcrypt.hash('password123', 10);
@@ -178,38 +178,10 @@ const seedData = async () => {
 
     console.log('Created books:', books.length);
 
-    // Create sample buyback requests
-    const customer = users.find(u => u.role === 'customer');
-    
-    const buybackRequests = await BuybackRequest.insertMany([
-      {
-        userId: customer._id,
-        isbn: '978-8126554232',
-        bookTitle: 'Advanced Engineering Mathematics',
-        author: 'Erwin Kreyszig',
-        condition: 'good',
-        offeredPrice: 400,
-        status: 'pending',
-        category: 'Engineering',
-        publisher: 'Wiley India',
-        language: 'English'
-      },
-      {
-        userId: customer._id,
-        isbn: '978-0136436690',
-        bookTitle: 'Organic Chemistry',
-        author: 'Morrison and Boyd',
-        condition: 'like-new',
-        offeredPrice: 350,
-        status: 'approved',
-        sellingPrice: 320,
-        category: 'Science',
-        publisher: 'Pearson',
-        language: 'English'
-      }
-    ]);
-
-    console.log('Created buyback requests:', buybackRequests.length);
+    // DISABLED - Don't seed buyback requests, use real customer submissions
+    // const customer = users.find(u => u.role === 'customer');
+    // const buybackRequests = await BuybackRequest.insertMany([...]);
+    console.log('Skipped buyback seeding - using real customer data');
 
     console.log('✅ Seed data created successfully!');
     console.log('\nTest Accounts:');

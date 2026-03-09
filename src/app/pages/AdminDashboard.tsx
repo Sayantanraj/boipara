@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Navbar } from '../components/Navbar';
-import { Users, Store, BookOpen, IndianRupee, TrendingUp, Package, AlertCircle, CheckCircle, Clock, Shield, X, Star, MapPin, Award, Mail, Calendar, ShoppingBag, Tag, Download, RefreshCw, FileText, RotateCcw, MessageCircle } from 'lucide-react';
+import { Users, Store, BookOpen, IndianRupee, TrendingUp, Package, AlertCircle, CheckCircle, Clock, Shield, X, Star, MapPin, Award, Mail, Calendar, ShoppingBag, Tag, Download, RefreshCw, FileText, RotateCcw, MessageCircle, ChevronDown } from 'lucide-react';
 import type { User, CartItem, BuybackRequest, Order, PendingBook, ReturnRequest } from '../types';
 import { mockBooks, mockSellers, mockUsers } from '../data/mockData';
 import { Link, useNavigate } from 'react-router-dom';
@@ -53,6 +53,7 @@ export function AdminDashboard() {
   // Mock wishlist for navbar
   const [wishlist] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'sellers' | 'books' | 'customerOrders' | 'sellerOrders' | 'returns' | 'buybackSales' | 'buyback' | 'tickets' | 'settings'>('overview');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   // Real users from database
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -236,6 +237,47 @@ export function AdminDashboard() {
     loadSupportTickets();
   }, []);
 
+  // Load buyback sales (seller purchases) from database
+  useEffect(() => {
+    const loadBuybackSales = async () => {
+      try {
+        setLoadingBuybackSales(true);
+        console.log('🔄 Loading buyback sales...');
+        const orders = await apiService.getAllBuybackOrders();
+        console.log('📦 Received buyback orders:', orders.length);
+        
+        // Transform orders to sales format
+        const sales: BuybackSale[] = orders.map((order: any) => ({
+          id: order.trackingId || order._id,
+          sellerId: order.userId?._id || order.userId,
+          sellerName: order.userId?.storeName || order.userId?.name || order.customerName || 'Unknown Seller',
+          buybackBookId: order.items[0]?.bookId?._id || '',
+          bookTitle: order.items[0]?.bookId?.bookTitle || 'Unknown Book',
+          author: order.items[0]?.bookId?.author || 'Unknown Author',
+          isbn: order.items[0]?.bookId?.isbn || 'N/A',
+          price: order.items[0]?.price || 0,
+          quantity: order.items.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0),
+          total: order.total || 0,
+          date: new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+          status: order.status || 'pending'
+        }));
+        
+        setBuybackSales(sales);
+        console.log('✅ Loaded buyback sales:', sales.length);
+      } catch (error) {
+        console.error('Error loading buyback sales:', error);
+        toast.error('Failed to load buyback sales');
+        setBuybackSales([]);
+      } finally {
+        setLoadingBuybackSales(false);
+      }
+    };
+
+    if (user && user.role === 'admin') {
+      loadBuybackSales();
+    }
+  }, [user]);
+
   // Load buyback requests from database
   useEffect(() => {
     const loadBuybackRequests = async () => {
@@ -402,51 +444,9 @@ export function AdminDashboard() {
     localStorage.setItem('boiParaRemovedBooks', JSON.stringify(removedBooks));
   }, [removedBooks]);
 
-  // Mock buyback sales data (Admin selling buyback books to sellers)
-  const [buybackSales] = useState<BuybackSale[]>([
-    {
-      id: 'BS-001',
-      sellerId: 's1',
-      sellerName: 'College Street Books',
-      buybackBookId: 'bb1',
-      bookTitle: 'Introduction to Algorithms',
-      author: 'Thomas H. Cormen',
-      isbn: '978-0262033848',
-      price: 850,
-      quantity: 2,
-      total: 1700,
-      date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN'),
-      status: 'completed'
-    },
-    {
-      id: 'BS-002',
-      sellerId: 's2',
-      sellerName: 'Academic Publishers',
-      buybackBookId: 'bb2',
-      bookTitle: 'The Art of Computer Programming',
-      author: 'Donald Knuth',
-      isbn: '978-0201896831',
-      price: 1200,
-      quantity: 1,
-      total: 1200,
-      date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN'),
-      status: 'completed'
-    },
-    {
-      id: 'BS-003',
-      sellerId: 's1',
-      sellerName: 'College Street Books',
-      buybackBookId: 'bb3',
-      bookTitle: 'Clean Code',
-      author: 'Robert C. Martin',
-      isbn: '978-0132350884',
-      price: 450,
-      quantity: 3,
-      total: 1350,
-      date: new Date().toLocaleDateString('en-IN'),
-      status: 'pending'
-    }
-  ]);
+  // Real buyback sales data (Admin selling buyback books to sellers)
+  const [buybackSales, setBuybackSales] = useState<BuybackSale[]>([]);
+  const [loadingBuybackSales, setLoadingBuybackSales] = useState(true);
 
   const totalUsers = allUsers.filter(u => u.role === 'customer').length;
   const totalSellers = allSellers.length;
@@ -1328,54 +1328,54 @@ export function AdminDashboard() {
 
         {/* Stats Overview */}
         {activeTab === 'overview' && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
-            <div className="bg-gradient-to-br from-[#3D2817] to-[#2C1810] rounded-lg p-4 sm:p-6 border-2 border-[#8B6F47] shadow-xl">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+            <div className="bg-gradient-to-br from-[#3D2817] to-[#2C1810] rounded-lg p-5 border-2 border-[#8B6F47] shadow-xl">
               <div className="flex items-center gap-3 mb-3">
-                <div className="bg-blue-600 p-2.5 rounded-lg">
-                  <Users className="size-5 sm:size-6 text-white" />
+                <div className="bg-blue-600 p-3 rounded-lg">
+                  <Users className="size-6 text-white" />
                 </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-[#D4C5AA]">Total Users</p>
-                  <p className="text-xl sm:text-2xl font-bold text-[#F5E6D3]">{totalUsers}</p>
+                <div className="flex-1">
+                  <p className="text-sm text-[#D4C5AA]">Total Users</p>
+                  <p className="text-2xl font-bold text-[#F5E6D3]">{totalUsers}</p>
                 </div>
               </div>
               <p className="text-xs text-blue-400">+23 this week</p>
             </div>
 
-            <div className="bg-gradient-to-br from-[#3D2817] to-[#2C1810] rounded-lg p-4 sm:p-6 border-2 border-[#8B6F47] shadow-xl">
+            <div className="bg-gradient-to-br from-[#3D2817] to-[#2C1810] rounded-lg p-5 border-2 border-[#8B6F47] shadow-xl">
               <div className="flex items-center gap-3 mb-3">
-                <div className="bg-emerald-600 p-2.5 rounded-lg">
-                  <Store className="size-5 sm:size-6 text-white" />
+                <div className="bg-emerald-600 p-3 rounded-lg">
+                  <Store className="size-6 text-white" />
                 </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-[#D4C5AA]">Active Sellers</p>
-                  <p className="text-xl sm:text-2xl font-bold text-[#F5E6D3]">{totalSellers}</p>
+                <div className="flex-1">
+                  <p className="text-sm text-[#D4C5AA]">Active Sellers</p>
+                  <p className="text-2xl font-bold text-[#F5E6D3]">{totalSellers}</p>
                 </div>
               </div>
               <p className="text-xs text-emerald-400">College Street vendors</p>
             </div>
 
-            <div className="bg-gradient-to-br from-[#3D2817] to-[#2C1810] rounded-lg p-4 sm:p-6 border-2 border-[#8B6F47] shadow-xl">
+            <div className="bg-gradient-to-br from-[#3D2817] to-[#2C1810] rounded-lg p-5 border-2 border-[#8B6F47] shadow-xl">
               <div className="flex items-center gap-3 mb-3">
-                <div className="bg-[#8B6F47] p-2.5 rounded-lg">
-                  <BookOpen className="size-5 sm:size-6 text-[#F5E6D3]" />
+                <div className="bg-[#8B6F47] p-3 rounded-lg">
+                  <BookOpen className="size-6 text-[#F5E6D3]" />
                 </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-[#D4C5AA]">Total Books</p>
-                  <p className="text-xl sm:text-2xl font-bold text-[#F5E6D3]">{totalBooks}</p>
+                <div className="flex-1">
+                  <p className="text-sm text-[#D4C5AA]">Total Books</p>
+                  <p className="text-2xl font-bold text-[#F5E6D3]">{totalBooks}</p>
                 </div>
               </div>
               <p className="text-xs text-[#D4C5AA]">Active listings</p>
             </div>
 
-            <div className="bg-gradient-to-br from-[#3D2817] to-[#2C1810] rounded-lg p-4 sm:p-6 border-2 border-[#8B6F47] shadow-xl">
+            <div className="bg-gradient-to-br from-[#3D2817] to-[#2C1810] rounded-lg p-5 border-2 border-[#8B6F47] shadow-xl">
               <div className="flex items-center gap-3 mb-3">
-                <div className="bg-[#D4AF37] p-2.5 rounded-lg">
-                  <TrendingUp className="size-5 sm:size-6 text-[#2C1810]" />
+                <div className="bg-[#D4AF37] p-3 rounded-lg">
+                  <TrendingUp className="size-6 text-[#2C1810]" />
                 </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-[#D4C5AA]">Revenue</p>
-                  <p className="text-xl sm:text-2xl font-bold text-[#D4AF37]">₹{(totalRevenue / 1000).toFixed(0)}K</p>
+                <div className="flex-1">
+                  <p className="text-sm text-[#D4C5AA]">Revenue</p>
+                  <p className="text-2xl font-bold text-[#D4AF37]">₹{(totalRevenue / 1000).toFixed(0)}K</p>
                 </div>
               </div>
               <p className="text-xs text-emerald-400">+18% this month</p>
@@ -1385,10 +1385,66 @@ export function AdminDashboard() {
 
         {/* Tabs */}
         <div className="bg-[#3D2817] rounded-lg border-2 border-[#8B6F47] shadow-xl mb-6">
-          <div className="flex gap-1 p-2">
+          {/* Mobile Dropdown */}
+          <div className="md:hidden">
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="w-full flex items-center justify-between px-4 py-3 text-[#D4AF37] font-semibold"
+            >
+              <span className="flex items-center gap-2">
+                {activeTab === 'overview' && <><TrendingUp className="size-4" /> Overview</>}
+                {activeTab === 'users' && <><Users className="size-4" /> Users</>}
+                {activeTab === 'sellers' && <><Store className="size-4" /> Sellers</>}
+                {activeTab === 'books' && <><BookOpen className="size-4" /> Books</>}
+                {activeTab === 'customerOrders' && <><ShoppingBag className="size-4" /> Customer Orders</>}
+                {activeTab === 'sellerOrders' && <><Store className="size-4" /> Seller Orders</>}
+                {activeTab === 'returns' && <><RotateCcw className="size-4" /> Returns</>}
+                {activeTab === 'buybackSales' && <><RefreshCw className="size-4" /> Buyback Sales</>}
+                {activeTab === 'buyback' && <><AlertCircle className="size-4" /> Buyback ({pendingBuybacks})</>}
+                {activeTab === 'tickets' && <><MessageCircle className="size-4" /> Tickets ({supportTickets.filter(t => t.status === 'open').length})</>}
+              </span>
+              <ChevronDown className={`size-5 transition-transform ${isMobileMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {isMobileMenuOpen && (
+              <div className="border-t border-[#8B6F47] bg-[#2C1810]">
+                <button onClick={() => { setActiveTab('overview'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-2 px-4 py-3 text-left transition-colors ${activeTab === 'overview' ? 'bg-[#D4AF37] text-[#2C1810]' : 'text-[#D4C5AA] hover:bg-[#3D2817]'}`}>
+                  <TrendingUp className="size-4" /> Overview
+                </button>
+                <button onClick={() => { setActiveTab('users'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-2 px-4 py-3 text-left transition-colors ${activeTab === 'users' ? 'bg-[#D4AF37] text-[#2C1810]' : 'text-[#D4C5AA] hover:bg-[#3D2817]'}`}>
+                  <Users className="size-4" /> Users
+                </button>
+                <button onClick={() => { setActiveTab('sellers'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-2 px-4 py-3 text-left transition-colors ${activeTab === 'sellers' ? 'bg-[#D4AF37] text-[#2C1810]' : 'text-[#D4C5AA] hover:bg-[#3D2817]'}`}>
+                  <Store className="size-4" /> Sellers
+                </button>
+                <button onClick={() => { setActiveTab('books'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-2 px-4 py-3 text-left transition-colors ${activeTab === 'books' ? 'bg-[#D4AF37] text-[#2C1810]' : 'text-[#D4C5AA] hover:bg-[#3D2817]'}`}>
+                  <BookOpen className="size-4" /> Books
+                </button>
+                <button onClick={() => { setActiveTab('customerOrders'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-2 px-4 py-3 text-left transition-colors ${activeTab === 'customerOrders' ? 'bg-[#D4AF37] text-[#2C1810]' : 'text-[#D4C5AA] hover:bg-[#3D2817]'}`}>
+                  <ShoppingBag className="size-4" /> Customer Orders
+                </button>
+                <button onClick={() => { setActiveTab('sellerOrders'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-2 px-4 py-3 text-left transition-colors ${activeTab === 'sellerOrders' ? 'bg-[#D4AF37] text-[#2C1810]' : 'text-[#D4C5AA] hover:bg-[#3D2817]'}`}>
+                  <Store className="size-4" /> Seller Orders
+                </button>
+                <button onClick={() => { setActiveTab('returns'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-2 px-4 py-3 text-left transition-colors ${activeTab === 'returns' ? 'bg-[#D4AF37] text-[#2C1810]' : 'text-[#D4C5AA] hover:bg-[#3D2817]'}`}>
+                  <RotateCcw className="size-4" /> Returns
+                </button>
+                <button onClick={() => { setActiveTab('buybackSales'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-2 px-4 py-3 text-left transition-colors ${activeTab === 'buybackSales' ? 'bg-[#D4AF37] text-[#2C1810]' : 'text-[#D4C5AA] hover:bg-[#3D2817]'}`}>
+                  <RefreshCw className="size-4" /> Buyback Sales
+                </button>
+                <button onClick={() => { setActiveTab('buyback'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-2 px-4 py-3 text-left transition-colors ${activeTab === 'buyback' ? 'bg-[#D4AF37] text-[#2C1810]' : 'text-[#D4C5AA] hover:bg-[#3D2817]'}`}>
+                  <AlertCircle className="size-4" /> Buyback ({pendingBuybacks})
+                </button>
+                <button onClick={() => { setActiveTab('tickets'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-2 px-4 py-3 text-left transition-colors ${activeTab === 'tickets' ? 'bg-[#D4AF37] text-[#2C1810]' : 'text-[#D4C5AA] hover:bg-[#3D2817]'}`}>
+                  <MessageCircle className="size-4" /> Tickets ({supportTickets.filter(t => t.status === 'open').length})
+                </button>
+              </div>
+            )}
+          </div>
+          {/* Desktop Tabs */}
+          <div className="hidden md:flex gap-1 p-2 overflow-x-auto">
             <button
               onClick={() => setActiveTab('overview')}
-              className={`flex items-center justify-center gap-1 px-2 py-2 rounded-md font-semibold text-xs whitespace-nowrap transition-all flex-1 ${
+              className={`flex items-center justify-center gap-1 px-2 py-2 rounded-md font-semibold text-xs whitespace-nowrap transition-all flex-shrink-0 min-w-[80px] ${
                 activeTab === 'overview'
                   ? 'bg-[#D4AF37] text-[#2C1810]'
                   : 'text-[#D4C5AA] hover:bg-[#2C1810]'
@@ -1399,7 +1455,7 @@ export function AdminDashboard() {
             </button>
             <button
               onClick={() => setActiveTab('users')}
-              className={`flex items-center justify-center gap-1 px-2 py-2 rounded-md font-semibold text-xs whitespace-nowrap transition-all flex-1 ${
+              className={`flex items-center justify-center gap-1 px-2 py-2 rounded-md font-semibold text-xs whitespace-nowrap transition-all flex-shrink-0 min-w-[80px] ${
                 activeTab === 'users'
                   ? 'bg-[#D4AF37] text-[#2C1810]'
                   : 'text-[#D4C5AA] hover:bg-[#2C1810]'
@@ -1410,7 +1466,7 @@ export function AdminDashboard() {
             </button>
             <button
               onClick={() => setActiveTab('sellers')}
-              className={`flex items-center justify-center gap-1 px-2 py-2 rounded-md font-semibold text-xs whitespace-nowrap transition-all flex-1 ${
+              className={`flex items-center justify-center gap-1 px-2 py-2 rounded-md font-semibold text-xs whitespace-nowrap transition-all flex-shrink-0 min-w-[80px] ${
                 activeTab === 'sellers'
                   ? 'bg-[#D4AF37] text-[#2C1810]'
                   : 'text-[#D4C5AA] hover:bg-[#2C1810]'
@@ -1421,7 +1477,7 @@ export function AdminDashboard() {
             </button>
             <button
               onClick={() => setActiveTab('books')}
-              className={`flex items-center justify-center gap-1 px-2 py-2 rounded-md font-semibold text-xs whitespace-nowrap transition-all flex-1 ${
+              className={`flex items-center justify-center gap-1 px-2 py-2 rounded-md font-semibold text-xs whitespace-nowrap transition-all flex-shrink-0 min-w-[80px] ${
                 activeTab === 'books'
                   ? 'bg-[#D4AF37] text-[#2C1810]'
                   : 'text-[#D4C5AA] hover:bg-[#2C1810]'
@@ -1432,7 +1488,7 @@ export function AdminDashboard() {
             </button>
             <button
               onClick={() => setActiveTab('customerOrders')}
-              className={`flex items-center justify-center gap-1 px-2 py-2 rounded-md font-semibold text-xs whitespace-nowrap transition-all flex-1 ${
+              className={`flex items-center justify-center gap-1 px-2 py-2 rounded-md font-semibold text-xs whitespace-nowrap transition-all flex-shrink-0 min-w-[120px] ${
                 activeTab === 'customerOrders'
                   ? 'bg-[#D4AF37] text-[#2C1810]'
                   : 'text-[#D4C5AA] hover:bg-[#2C1810]'
@@ -1443,7 +1499,7 @@ export function AdminDashboard() {
             </button>
             <button
               onClick={() => setActiveTab('sellerOrders')}
-              className={`flex items-center justify-center gap-1 px-2 py-2 rounded-md font-semibold text-xs whitespace-nowrap transition-all flex-1 ${
+              className={`flex items-center justify-center gap-1 px-2 py-2 rounded-md font-semibold text-xs whitespace-nowrap transition-all flex-shrink-0 min-w-[120px] ${
                 activeTab === 'sellerOrders'
                   ? 'bg-[#D4AF37] text-[#2C1810]'
                   : 'text-[#D4C5AA] hover:bg-[#2C1810]'
@@ -1454,7 +1510,7 @@ export function AdminDashboard() {
             </button>
             <button
               onClick={() => setActiveTab('returns')}
-              className={`flex items-center justify-center gap-1 px-2 py-2 rounded-md font-semibold text-xs whitespace-nowrap transition-all flex-1 ${
+              className={`flex items-center justify-center gap-1 px-2 py-2 rounded-md font-semibold text-xs whitespace-nowrap transition-all flex-shrink-0 min-w-[80px] ${
                 activeTab === 'returns'
                   ? 'bg-[#D4AF37] text-[#2C1810]'
                   : 'text-[#D4C5AA] hover:bg-[#2C1810]'
@@ -1465,7 +1521,7 @@ export function AdminDashboard() {
             </button>
             <button
               onClick={() => setActiveTab('buybackSales')}
-              className={`flex items-center justify-center gap-1 px-2 py-2 rounded-md font-semibold text-xs whitespace-nowrap transition-all flex-1 ${
+              className={`flex items-center justify-center gap-1 px-2 py-2 rounded-md font-semibold text-xs whitespace-nowrap transition-all flex-shrink-0 min-w-[120px] ${
                 activeTab === 'buybackSales'
                   ? 'bg-[#D4AF37] text-[#2C1810]'
                   : 'text-[#D4C5AA] hover:bg-[#2C1810]'
@@ -1476,7 +1532,7 @@ export function AdminDashboard() {
             </button>
             <button
               onClick={() => setActiveTab('buyback')}
-              className={`flex items-center justify-center gap-1 px-2 py-2 rounded-md font-semibold text-xs whitespace-nowrap transition-all flex-1 ${
+              className={`flex items-center justify-center gap-1 px-2 py-2 rounded-md font-semibold text-xs whitespace-nowrap transition-all flex-shrink-0 min-w-[100px] ${
                 activeTab === 'buyback'
                   ? 'bg-[#D4AF37] text-[#2C1810]'
                   : 'text-[#D4C5AA] hover:bg-[#2C1810]'
@@ -1487,7 +1543,7 @@ export function AdminDashboard() {
             </button>
             <button
               onClick={() => setActiveTab('tickets')}
-              className={`flex items-center justify-center gap-1 px-2 py-2 rounded-md font-semibold text-xs whitespace-nowrap transition-all flex-1 ${
+              className={`flex items-center justify-center gap-1 px-2 py-2 rounded-md font-semibold text-xs whitespace-nowrap transition-all flex-shrink-0 min-w-[100px] ${
                 activeTab === 'tickets'
                   ? 'bg-[#D4AF37] text-[#2C1810]'
                   : 'text-[#D4C5AA] hover:bg-[#2C1810]'
@@ -1590,48 +1646,48 @@ export function AdminDashboard() {
             </div>
 
             {/* Top Performers */}
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="bg-[#3D2817] rounded-lg p-6 border-2 border-[#8B6F47] shadow-xl">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+              <div className="bg-[#3D2817] rounded-lg p-5 border-2 border-[#8B6F47] shadow-xl">
                 <h2 className="text-xl font-bold text-[#D4AF37] mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>
                   Top Selling Books
                 </h2>
                 <div className="space-y-3">
                   {allBooks.slice(0, 5).map((book, i) => (
                     <div key={book._id} className="flex items-center gap-3">
-                      <span className="text-2xl font-bold text-[#8B6F47]">#{i + 1}</span>
+                      <span className="text-2xl font-bold text-[#8B6F47] w-8 flex-shrink-0">#{i + 1}</span>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-[#F5E6D3] truncate text-sm">{book.title}</p>
-                        <p className="text-xs text-[#D4C5AA]">{book.author}</p>
+                        <p className="text-xs text-[#D4C5AA] truncate">{book.author}</p>
                       </div>
-                      <span className="text-sm font-bold text-[#D4AF37]">₹{book.price}</span>
+                      <span className="text-sm font-bold text-[#D4AF37] flex-shrink-0">₹{book.price}</span>
                     </div>
                   ))}
                   {allBooks.length === 0 && (
-                    <p className="text-[#D4C5AA] text-sm">No books available</p>
+                    <p className="text-[#D4C5AA] text-sm text-center py-4">No books available</p>
                   )}
                 </div>
               </div>
 
-              <div className="bg-[#3D2817] rounded-lg p-6 border-2 border-[#8B6F47] shadow-xl">
+              <div className="bg-[#3D2817] rounded-lg p-5 border-2 border-[#8B6F47] shadow-xl">
                 <h2 className="text-xl font-bold text-[#D4AF37] mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>
                   Top Sellers
                 </h2>
                 <div className="space-y-3">
                   {allSellers.slice(0, 5).map((seller, i) => (
                     <div key={seller.id || seller._id} className="flex items-center gap-3">
-                      <span className="text-2xl font-bold text-[#8B6F47]">#{i + 1}</span>
+                      <span className="text-2xl font-bold text-[#8B6F47] w-8 flex-shrink-0">#{i + 1}</span>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-[#F5E6D3] truncate text-sm">{seller.storeName || seller.name}</p>
-                        <p className="text-xs text-[#D4C5AA]">{seller.location || 'Location not set'}</p>
+                        <p className="text-xs text-[#D4C5AA] truncate">{seller.location || 'Location not set'}</p>
                       </div>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 flex-shrink-0">
                         <span className="text-sm font-bold text-[#D4AF37]">Active</span>
                         <span className="text-[#D4AF37]">★</span>
                       </div>
                     </div>
                   ))}
                   {allSellers.length === 0 && (
-                    <p className="text-[#D4C5AA] text-sm">No sellers available</p>
+                    <p className="text-[#D4C5AA] text-sm text-center py-4">No sellers available</p>
                   )}
                 </div>
               </div>
@@ -1641,8 +1697,8 @@ export function AdminDashboard() {
 
         {/* Users Tab */}
         {activeTab === 'users' && (
-          <div className="bg-[#3D2817] rounded-lg p-6 border-2 border-[#8B6F47] shadow-xl">
-            <h2 className="text-2xl font-bold text-[#D4AF37] mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>
+          <div className="bg-[#3D2817] rounded-lg p-4 sm:p-6 border-2 border-[#8B6F47] shadow-xl">
+            <h2 className="text-xl sm:text-2xl font-bold text-[#D4AF37] mb-4 sm:mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>
               Platform Users ({totalUsers})
             </h2>
             {loadingUsers ? (
@@ -1653,29 +1709,29 @@ export function AdminDashboard() {
             ) : (
               <div className="space-y-3">
                 {allUsers.filter(u => u.role === 'customer').map((user) => (
-                  <div key={user.id || user._id} className="flex items-center justify-between p-4 bg-[#2C1810] rounded-lg border border-[#8B6F47]">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-blue-700 rounded-full flex items-center justify-center">
-                        <Users className="size-6 text-white" />
+                  <div key={user.id || user._id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 bg-[#2C1810] rounded-lg border border-[#8B6F47]">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-700 rounded-full flex items-center justify-center flex-shrink-0">
+                        <Users className="size-5 sm:size-6 text-white" />
                       </div>
-                      <div>
-                        <p className="font-bold text-[#F5E6D3]">{user.name}</p>
-                        <p className="text-sm text-[#D4C5AA]">{user.email}</p>
-                        {user.location && <p className="text-xs text-[#A08968] flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
-                          {user.location}
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold text-[#F5E6D3] text-sm sm:text-base truncate">{user.name}</p>
+                        <p className="text-xs sm:text-sm text-[#D4C5AA] truncate">{user.email}</p>
+                        {user.location && <p className="text-xs text-[#A08968] flex items-center gap-1 truncate">
+                          <MapPin className="w-3 h-3 flex-shrink-0" />
+                          <span className="truncate">{user.location}</span>
                         </p>}
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 w-full sm:w-auto">
                       <button
-                        className="px-4 py-2 bg-[#8B6F47] hover:bg-[#D4AF37] text-[#F5E6D3] font-semibold rounded text-sm transition-all"
+                        className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-[#8B6F47] hover:bg-[#D4AF37] text-[#F5E6D3] font-semibold rounded text-xs sm:text-sm transition-all"
                         onClick={() => handleViewUserProfile(user.id || user._id)}
                       >
-                        View Profile
+                        View
                       </button>
                       <button
-                        className="px-4 py-2 bg-red-700 hover:bg-red-600 text-white font-semibold rounded text-sm transition-all"
+                        className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-red-700 hover:bg-red-600 text-white font-semibold rounded text-xs sm:text-sm transition-all"
                         onClick={() => handleSuspendUser(user.id || user._id)}
                       >
                         {suspendedUsers.includes(user.id || user._id) ? 'Unsuspend' : 'Suspend'}
@@ -1696,8 +1752,8 @@ export function AdminDashboard() {
 
         {/* Sellers Tab */}
         {activeTab === 'sellers' && (
-          <div className="bg-[#3D2817] rounded-lg p-6 border-2 border-[#8B6F47] shadow-xl">
-            <h2 className="text-2xl font-bold text-[#D4AF37] mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>
+          <div className="bg-[#3D2817] rounded-lg p-4 sm:p-6 border-2 border-[#8B6F47] shadow-xl">
+            <h2 className="text-xl sm:text-2xl font-bold text-[#D4AF37] mb-4 sm:mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>
               Platform Sellers ({totalSellers})
             </h2>
             {loadingSellers ? (
@@ -1708,51 +1764,49 @@ export function AdminDashboard() {
             ) : (
               <div className="space-y-4">
                 {allSellers.map((seller) => (
-                  <div key={seller.id || seller._id} className="p-4 bg-[#2C1810] rounded-lg border border-[#8B6F47]">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-emerald-700 rounded-lg flex items-center justify-center">
-                          <Store className="size-7 text-white" />
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-[#F5E6D3] text-lg">{seller.storeName || seller.name}</h3>
-                          <p className="text-sm text-[#D4C5AA]">{seller.name}</p>
-                          <p className="text-xs text-[#A08968] flex items-center gap-1">
-                            <MapPin className="w-3 h-3" />
-                            {seller.location || 'Location not provided'}
-                          </p>
-                        </div>
+                  <div key={seller.id || seller._id} className="p-3 sm:p-4 bg-[#2C1810] rounded-lg border border-[#8B6F47]">
+                    <div className="flex items-start gap-3 mb-3">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 bg-emerald-700 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Store className="size-6 sm:size-7 text-white" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-bold text-[#F5E6D3] text-base sm:text-lg truncate">{seller.storeName || seller.name}</h3>
+                        <p className="text-xs sm:text-sm text-[#D4C5AA] truncate">{seller.name}</p>
+                        <p className="text-xs text-[#A08968] flex items-center gap-1 truncate">
+                          <MapPin className="w-3 h-3 flex-shrink-0" />
+                          <span className="truncate">{seller.location || 'Location not provided'}</span>
+                        </p>
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-4 mb-3">
+                    <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-3">
                       <div className="text-center p-2 bg-[#3D2817] rounded border border-[#8B6F47]">
-                        <p className="text-sm text-[#D4C5AA]">Phone</p>
-                        <p className="text-sm font-bold text-[#F5E6D3]">{seller.phone || 'N/A'}</p>
+                        <p className="text-xs text-[#D4C5AA] truncate">Phone</p>
+                        <p className="text-xs sm:text-sm font-bold text-[#F5E6D3] truncate">{seller.phone || 'N/A'}</p>
                       </div>
                       <div className="text-center p-2 bg-[#3D2817] rounded border border-[#8B6F47]">
-                        <p className="text-sm text-[#D4C5AA]">Email</p>
-                        <p className="text-sm font-bold text-[#F5E6D3]">{seller.email}</p>
+                        <p className="text-xs text-[#D4C5AA] truncate">Email</p>
+                        <p className="text-xs sm:text-sm font-bold text-[#F5E6D3] truncate">{seller.email}</p>
                       </div>
                       <div className="text-center p-2 bg-[#3D2817] rounded border border-[#8B6F47]">
-                        <p className="text-sm text-[#D4C5AA]">Status</p>
-                        <p className="text-sm font-bold text-emerald-400">Active</p>
+                        <p className="text-xs text-[#D4C5AA]">Status</p>
+                        <p className="text-xs sm:text-sm font-bold text-emerald-400">Active</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
                       <button
-                        className="flex-1 px-4 py-2 bg-[#8B6F47] hover:bg-[#D4AF37] text-[#F5E6D3] font-semibold rounded text-sm transition-all"
+                        className="flex-1 px-2 py-2 bg-[#8B6F47] hover:bg-[#D4AF37] text-[#F5E6D3] font-semibold rounded text-xs transition-all"
                         onClick={() => handleViewSellerBooks(seller.id || seller._id)}
                       >
                         View Books
                       </button>
                       <button
-                        className="flex-1 px-4 py-2 bg-[#8B6F47] hover:bg-[#D4AF37] text-white font-semibold rounded text-sm transition-all"
+                        className="flex-1 px-2 py-2 bg-[#8B6F47] hover:bg-[#D4AF37] text-white font-semibold rounded text-xs transition-all"
                         onClick={() => handleViewSellerStats(seller.id || seller._id)}
                       >
                         View Stats
                       </button>
                       <button
-                        className="px-4 py-2 bg-red-700 hover:bg-red-600 text-white font-semibold rounded text-sm transition-all"
+                        className="px-2 py-2 bg-red-700 hover:bg-red-600 text-white font-semibold rounded text-xs transition-all whitespace-nowrap"
                         onClick={() => handleSuspendSeller(seller.id || seller._id)}
                       >
                         {suspendedSellers.includes(seller.id || seller._id) ? 'Unsuspend' : 'Suspend'}
@@ -1773,8 +1827,8 @@ export function AdminDashboard() {
 
         {/* Books Tab */}
         {activeTab === 'books' && (
-          <div className="bg-[#3D2817] rounded-lg p-6 border-2 border-[#8B6F47] shadow-xl">
-            <h2 className="text-2xl font-bold text-[#D4AF37] mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>
+          <div className="bg-[#3D2817] rounded-lg p-4 sm:p-6 border-2 border-[#8B6F47] shadow-xl">
+            <h2 className="text-xl sm:text-2xl font-bold text-[#D4AF37] mb-4 sm:mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>
               All Books ({totalBooks})
             </h2>
             {loadingBooks ? (
@@ -1786,38 +1840,38 @@ export function AdminDashboard() {
               <div className="space-y-3">
                 {allBooks.length > 0 ? (
                   allBooks.map((book) => (
-                    <div key={book._id} className="flex items-center gap-4 p-3 bg-[#2C1810] rounded-lg border border-[#8B6F47]">
+                    <div key={book._id} className="flex items-center gap-3 p-3 bg-[#2C1810] rounded-lg border border-[#8B6F47]">
                       <img 
                         src={book.image || '/api/placeholder/64/80'} 
                         alt={book.title} 
-                        className="w-16 h-20 object-cover rounded border border-[#8B6F47]"
+                        className="w-12 h-16 sm:w-16 sm:h-20 object-cover rounded border border-[#8B6F47] flex-shrink-0"
                         onError={(e) => {
                           e.currentTarget.src = '/api/placeholder/64/80';
                         }}
                       />
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-[#F5E6D3] truncate">{book.title}</h3>
-                        <p className="text-sm text-[#D4C5AA]">{book.author}</p>
-                        <div className="flex items-center gap-3 mt-1">
+                        <h3 className="font-bold text-[#F5E6D3] text-sm sm:text-base truncate">{book.title}</h3>
+                        <p className="text-xs sm:text-sm text-[#D4C5AA] truncate">{book.author}</p>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
                           <span className="text-xs bg-emerald-900/30 text-emerald-400 px-2 py-0.5 rounded border border-emerald-700/50">
                             {book.condition?.toUpperCase() || 'NEW'}
                           </span>
-                          <span className="text-xs text-[#A08968]">{book.sellerId?.storeName || book.sellerId?.name || 'Unknown Seller'}</span>
+                          <span className="text-xs text-[#A08968] truncate">{book.sellerId?.storeName || book.sellerId?.name || 'Unknown Seller'}</span>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-[#D4AF37]">₹{book.price}</p>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-base sm:text-lg font-bold text-[#D4AF37]">₹{book.price}</p>
                         <p className="text-xs text-[#D4C5AA]">Stock: {book.stock || 0}</p>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col gap-1 flex-shrink-0">
                         <button 
-                          className="px-3 py-1 bg-blue-700 hover:bg-blue-600 text-white text-xs font-semibold rounded transition-all"
+                          className="px-2 sm:px-3 py-1 bg-blue-700 hover:bg-blue-600 text-white text-xs font-semibold rounded transition-all"
                           onClick={() => navigate(`/product/${book._id}`)}
                         >
                           View
                         </button>
                         <button
-                          className="px-3 py-1 bg-red-700 hover:bg-red-600 text-white text-xs font-semibold rounded transition-all"
+                          className="px-2 sm:px-3 py-1 bg-red-700 hover:bg-red-600 text-white text-xs font-semibold rounded transition-all"
                           onClick={() => handleRemoveBook(book._id)}
                         >
                           {removedBooks.includes(book._id) ? 'Restore' : 'Remove'}
@@ -1838,9 +1892,9 @@ export function AdminDashboard() {
 
         {/* Customer Orders Tab */}
         {activeTab === 'customerOrders' && (
-          <div className="bg-[#3D2817] rounded-lg p-6 border-2 border-[#8B6F47] shadow-xl">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-[#D4AF37]" style={{ fontFamily: "'Playfair Display', serif" }}>
+          <div className="bg-[#3D2817] rounded-lg p-4 sm:p-6 border-2 border-[#8B6F47] shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-[#D4AF37]" style={{ fontFamily: "'Playfair Display', serif" }}>
                 Customer Orders ({customerOrders.length})
               </h2>
               <button
@@ -1859,7 +1913,7 @@ export function AdminDashboard() {
                     setLoadingCustomerOrders(false);
                   }
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-[#8B6F47] hover:bg-[#D4AF37] text-[#F5E6D3] font-semibold rounded transition-all"
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-[#8B6F47] hover:bg-[#D4AF37] text-[#F5E6D3] font-semibold rounded transition-all text-sm"
               >
                 <RefreshCw className="size-4" />
                 Refresh
@@ -1874,13 +1928,13 @@ export function AdminDashboard() {
               <div className="space-y-3">
                 {customerOrders && customerOrders.length > 0 ? (
                   customerOrders.slice(0, 8).map((order) => (
-                    <div key={order.id} className="p-4 bg-[#2C1810] rounded-lg border border-[#8B6F47]">
-                      <div className="flex items-center justify-between mb-2">
-                        <div>
-                          <p className="font-bold text-[#F5E6D3]">{order.id}</p>
-                          <p className="text-sm text-[#D4C5AA]">{order.date} • {order.customerName || 'Guest User'}</p>
+                    <div key={order.id} className="p-3 sm:p-4 bg-[#2C1810] rounded-lg border border-[#8B6F47]">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                        <div className="min-w-0">
+                          <p className="font-bold text-[#F5E6D3] text-sm sm:text-base truncate">{order.id}</p>
+                          <p className="text-xs sm:text-sm text-[#D4C5AA] truncate">{order.date} • {order.customerName || 'Guest User'}</p>
                         </div>
-                        <span className={`px-3 py-1 rounded text-sm font-bold ${
+                        <span className={`px-3 py-1 rounded text-xs font-bold whitespace-nowrap ${
                           order.status === 'new' || order.status === 'pending' ? 'bg-yellow-900/30 text-yellow-400 border border-yellow-700/50' :
                           order.status === 'processing' || order.status === 'accepted' || order.status === 'packed' ? 'bg-blue-900/30 text-blue-400 border border-blue-700/50' :
                           order.status === 'delivered' ? 'bg-emerald-900/30 text-emerald-400 border border-emerald-700/50' :
@@ -1890,14 +1944,14 @@ export function AdminDashboard() {
                           {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm text-[#D4C5AA]">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <p className="text-xs sm:text-sm text-[#D4C5AA] truncate">
                           {order.items.length} item{order.items.length !== 1 ? 's' : ''} • {order.items[0]?.book?.sellerName || 'Multiple Sellers'}
                         </p>
                         <div className="flex items-center gap-3">
-                          <p className="text-[#D4AF37] font-bold">₹{order.total}</p>
+                          <p className="text-[#D4AF37] font-bold text-sm sm:text-base">₹{order.total}</p>
                           <button
-                            className="px-4 py-1.5 bg-[#8B6F47] hover:bg-[#D4AF37] text-[#F5E6D3] font-semibold rounded text-sm transition-all"
+                            className="px-3 sm:px-4 py-1.5 bg-[#8B6F47] hover:bg-[#D4AF37] text-[#F5E6D3] font-semibold rounded text-xs sm:text-sm transition-all"
                             onClick={() => handleViewOrderDetails(order.id)}
                           >
                             Details
@@ -1919,11 +1973,11 @@ export function AdminDashboard() {
 
         {/* Seller Orders Tab */}
         {activeTab === 'sellerOrders' && (
-          <div className="bg-[#3D2817] rounded-lg p-6 border-2 border-[#8B6F47] shadow-xl">
-            <h2 className="text-2xl font-bold text-[#D4AF37] mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>
+          <div className="bg-[#3D2817] rounded-lg p-4 sm:p-6 border-2 border-[#8B6F47] shadow-xl">
+            <h2 className="text-xl sm:text-2xl font-bold text-[#D4AF37] mb-4 sm:mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>
               Seller Orders ({sellerOrders.length})
             </h2>
-            <p className="text-[#D4C5AA] mb-4 text-sm">
+            <p className="text-[#D4C5AA] mb-4 text-xs sm:text-sm">
               Orders placed by customers to sellers on the platform
             </p>
             {loadingSellerOrders ? (
@@ -1935,11 +1989,11 @@ export function AdminDashboard() {
               <div className="space-y-3">
                 {sellerOrders && sellerOrders.length > 0 ? (
                   sellerOrders.slice(0, 8).map((order) => (
-                    <div key={order.id} className="p-4 bg-[#2C1810] rounded-lg border border-emerald-700/50">
-                      <div className="flex items-center justify-between mb-2">
-                        <div>
-                          <p className="font-bold text-[#F5E6D3]">{order.id}</p>
-                          <p className="text-sm text-[#D4C5AA]">
+                    <div key={order.id} className="p-3 sm:p-4 bg-[#2C1810] rounded-lg border border-emerald-700/50">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                        <div className="min-w-0">
+                          <p className="font-bold text-[#F5E6D3] text-sm sm:text-base truncate">{order.id}</p>
+                          <p className="text-xs sm:text-sm text-[#D4C5AA] truncate">
                             {order.date} • {order.customerName || 'Unknown Seller'}
                           </p>
                           <p className="text-xs text-emerald-400 mt-1">
@@ -1947,7 +2001,7 @@ export function AdminDashboard() {
                             Customer Order
                           </p>
                         </div>
-                        <span className={`px-3 py-1 rounded text-sm font-bold ${
+                        <span className={`px-3 py-1 rounded text-xs font-bold whitespace-nowrap ${
                           order.status === 'new' || order.status === 'pending' ? 'bg-yellow-900/30 text-yellow-400 border border-yellow-700/50' :
                           order.status === 'processing' || order.status === 'accepted' || order.status === 'packed' ? 'bg-blue-900/30 text-blue-400 border border-blue-700/50' :
                           order.status === 'delivered' ? 'bg-emerald-900/30 text-emerald-400 border border-emerald-700/50' :
@@ -1957,14 +2011,14 @@ export function AdminDashboard() {
                           {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm text-[#D4C5AA]">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <p className="text-xs sm:text-sm text-[#D4C5AA] truncate">
                           {order.items.length} item{order.items.length !== 1 ? 's' : ''} • {order.items[0]?.book?.sellerName || 'Seller'}
                         </p>
                         <div className="flex items-center gap-3">
-                          <p className="text-[#D4AF37] font-bold">₹{order.total}</p>
+                          <p className="text-[#D4AF37] font-bold text-sm sm:text-base">₹{order.total}</p>
                           <button
-                            className="px-4 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold rounded text-sm transition-all"
+                            className="px-3 sm:px-4 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold rounded text-xs sm:text-sm transition-all"
                             onClick={() => handleViewOrderDetails(order.id)}
                           >
                             Details
@@ -1986,10 +2040,10 @@ export function AdminDashboard() {
 
         {/* Returns Tab */}
         {activeTab === 'returns' && (
-          <div className="bg-[#3D2817] rounded-lg p-6 border-2 border-[#8B6F47] shadow-xl">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-[#D4AF37]" style={{ fontFamily: "'Playfair Display', serif" }}>
-                Return Requests ({pendingReturns.length} Pending Admin Approval)
+          <div className="bg-[#3D2817] rounded-lg p-4 sm:p-6 border-2 border-[#8B6F47] shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-[#D4AF37]" style={{ fontFamily: "'Playfair Display', serif" }}>
+                Return Requests ({pendingReturns.length} Pending)
               </h2>
               <div className="flex gap-2">
                 <button
@@ -2014,7 +2068,7 @@ export function AdminDashboard() {
                     
                     console.table(debugInfo);
                   }}
-                  className="px-3 py-2 bg-blue-700 hover:bg-blue-600 text-white text-sm font-semibold rounded transition-all"
+                  className="px-3 py-2 bg-blue-700 hover:bg-blue-600 text-white text-xs sm:text-sm font-semibold rounded transition-all"
                 >
                   Debug
                 </button>
@@ -2044,14 +2098,14 @@ export function AdminDashboard() {
                       setLoadingReturns(false);
                     }
                   }}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#8B6F47] hover:bg-[#D4AF37] text-[#F5E6D3] font-semibold rounded transition-all"
+                  className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-[#8B6F47] hover:bg-[#D4AF37] text-[#F5E6D3] font-semibold rounded transition-all text-xs sm:text-sm"
                 >
                   <RefreshCw className="size-4" />
-                  Refresh
+                  <span className="hidden sm:inline">Refresh</span>
                 </button>
               </div>
             </div>
-            <p className="text-[#D4C5AA] mb-4 text-sm">
+            <p className="text-[#D4C5AA] mb-4 text-xs sm:text-sm">
               Review and approve/reject return requests from customers
             </p>
             {loadingReturns ? (
@@ -2063,64 +2117,64 @@ export function AdminDashboard() {
               <div className="space-y-3">
                 {pendingReturns && pendingReturns.length > 0 ? (
                   pendingReturns.map((returnRequest) => (
-                    <div key={returnRequest.id} className="p-4 bg-[#2C1810] rounded-lg border border-orange-700/50">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1">
-                          <p className="font-bold text-[#F5E6D3]">{returnRequest.id}</p>
-                          <p className="text-sm text-[#D4C5AA]">
+                    <div key={returnRequest.id} className="p-3 sm:p-4 bg-[#2C1810] rounded-lg border border-orange-700/50">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-[#F5E6D3] text-sm sm:text-base truncate">{returnRequest.id}</p>
+                          <p className="text-xs sm:text-sm text-[#D4C5AA] truncate">
                             {returnRequest.requestDate} • {returnRequest.customerName}
                           </p>
-                          <p className="text-xs text-orange-400 mt-1">
+                          <p className="text-xs text-orange-400 mt-1 truncate">
                             <RotateCcw className="inline size-3 mr-1" />
                             Order: {returnRequest.orderId}
                           </p>
-                          <p className="text-sm text-[#D4C5AA] mt-2">
+                          <p className="text-xs sm:text-sm text-[#D4C5AA] mt-2">
                             <span className="font-semibold text-[#F5E6D3]">Reason:</span> {returnRequest.reason}
                           </p>
                           {returnRequest.description && (
-                            <p className="text-sm text-[#D4C5AA] mt-1">
+                            <p className="text-xs sm:text-sm text-[#D4C5AA] mt-1">
                               <span className="font-semibold text-[#F5E6D3]">Details:</span> {returnRequest.description}
                             </p>
                           )}
                         </div>
-                        <span className="px-3 py-1 rounded text-sm font-bold bg-orange-900/30 text-orange-400 border border-orange-700/50">
+                        <span className="px-3 py-1 rounded text-xs font-bold bg-orange-900/30 text-orange-400 border border-orange-700/50 whitespace-nowrap">
                           Pending Review
                         </span>
                       </div>
                       <div className="border-t border-[#8B6F47] pt-3 mt-3">
-                        <p className="text-sm text-[#D4C5AA] mb-2">
-                          <span className="font-semibold text-[#F5E6D3]">Items to return:</span> {returnRequest.items.length} item{returnRequest.items.length !== 1 ? 's' : ''}
+                        <p className="text-xs sm:text-sm text-[#D4C5AA] mb-2">
+                          <span className="font-semibold text-[#F5E6D3]">Items:</span> {returnRequest.items.length} item{returnRequest.items.length !== 1 ? 's' : ''}
                         </p>
                         <div className="flex flex-wrap gap-2 mb-3">
                           {returnRequest.items.map((item, idx) => (
-                            <div key={idx} className="bg-[#3D2817] px-3 py-1.5 rounded text-xs text-[#D4C5AA] border border-[#8B6F47]">
+                            <div key={idx} className="bg-[#3D2817] px-2 sm:px-3 py-1.5 rounded text-xs text-[#D4C5AA] border border-[#8B6F47] truncate">
                               {item.book.title} (x{item.quantity})
                             </div>
                           ))}
                         </div>
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm text-[#D4C5AA]">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                          <p className="text-xs sm:text-sm text-[#D4C5AA] truncate">
                             Seller: <span className="text-[#D4AF37] font-semibold">{returnRequest.sellerName}</span>
                           </p>
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap gap-2">
                             <button
-                              className="px-4 py-1.5 bg-[#8B6F47] hover:bg-[#D4AF37] text-[#F5E6D3] font-semibold rounded text-sm transition-all"
+                              className="flex-1 sm:flex-none px-3 py-1.5 bg-[#8B6F47] hover:bg-[#D4AF37] text-[#F5E6D3] font-semibold rounded text-xs sm:text-sm transition-all"
                               onClick={() => handleViewReturnDetails(returnRequest)}
                             >
-                              View Details
+                              View
                             </button>
                             <button
-                              className="px-4 py-1.5 bg-red-700 hover:bg-red-600 text-white font-semibold rounded text-sm transition-all"
+                              className="flex-1 sm:flex-none px-3 py-1.5 bg-red-700 hover:bg-red-600 text-white font-semibold rounded text-xs sm:text-sm transition-all"
                               onClick={() => handleOpenReturnActionModal(returnRequest, 'reject')}
                             >
-                              <X className="inline size-4 mr-1" />
+                              <X className="inline size-3 sm:size-4 mr-1" />
                               Reject
                             </button>
                             <button
-                              className="px-4 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold rounded text-sm transition-all"
+                              className="flex-1 sm:flex-none px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold rounded text-xs sm:text-sm transition-all"
                               onClick={() => handleOpenReturnActionModal(returnRequest, 'approve')}
                             >
-                              <CheckCircle className="inline size-4 mr-1" />
+                              <CheckCircle className="inline size-3 sm:size-4 mr-1" />
                               Approve
                             </button>
                           </div>
@@ -2140,19 +2194,19 @@ export function AdminDashboard() {
             {/* Show all return requests history */}
             {returnRequests && returnRequests.length > pendingReturns.length && (
               <div className="mt-8">
-                <h3 className="text-xl font-bold text-[#D4AF37] mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>
+                <h3 className="text-lg sm:text-xl font-bold text-[#D4AF37] mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>
                   Return History
                 </h3>
                 <div className="space-y-3">
                   {returnRequests.filter(r => r.status !== 'pending-admin').map((returnRequest) => (
-                    <div key={returnRequest.id} className="p-4 bg-[#2C1810] rounded-lg border border-[#8B6F47]">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <p className="font-bold text-[#F5E6D3]">{returnRequest.id}</p>
-                          <p className="text-sm text-[#D4C5AA]">{returnRequest.requestDate} • {returnRequest.customerName}</p>
-                          <p className="text-xs text-[#D4C5AA] mt-1">Order: {returnRequest.orderId}</p>
+                    <div key={returnRequest.id} className="p-3 sm:p-4 bg-[#2C1810] rounded-lg border border-[#8B6F47]">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-[#F5E6D3] text-sm sm:text-base truncate">{returnRequest.id}</p>
+                          <p className="text-xs sm:text-sm text-[#D4C5AA] truncate">{returnRequest.requestDate} • {returnRequest.customerName}</p>
+                          <p className="text-xs text-[#D4C5AA] mt-1 truncate">Order: {returnRequest.orderId}</p>
                         </div>
-                        <span className={`px-3 py-1 rounded text-sm font-bold ${
+                        <span className={`px-2 sm:px-3 py-1 rounded text-xs sm:text-sm font-bold whitespace-nowrap self-start ${
                           returnRequest.status === 'approved-by-admin' ? 'bg-blue-900/30 text-blue-400 border border-blue-700/50' :
                           returnRequest.status === 'rejected-by-admin' ? 'bg-red-900/30 text-red-400 border border-red-700/50' :
                           returnRequest.status === 'refund-issued' ? 'bg-purple-900/30 text-purple-400 border border-purple-700/50' :
@@ -2163,7 +2217,7 @@ export function AdminDashboard() {
                         </span>
                       </div>
                       {returnRequest.adminNotes && (
-                        <p className="text-sm text-[#D4C5AA] mt-2">
+                        <p className="text-xs sm:text-sm text-[#D4C5AA] mt-2 break-words">
                           <span className="font-semibold text-[#F5E6D3]">Admin Notes:</span> {returnRequest.adminNotes}
                         </p>
                       )}
@@ -2177,65 +2231,154 @@ export function AdminDashboard() {
 
         {/* Buyback Sales Tab */}
         {activeTab === 'buybackSales' && (
-          <div className="bg-[#3D2817] rounded-lg p-6 border-2 border-[#8B6F47] shadow-xl">
-            <h2 className="text-2xl font-bold text-[#D4AF37] mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>
-              Buyback Sales - Admin to Sellers ({buybackRequests.length})
-            </h2>
-            <p className="text-[#D4C5AA] mb-4 text-sm">
-              All buyback requests in the system
-            </p>
-            <div className="space-y-3">
-              {buybackRequests.length > 0 ? (
-                buybackRequests.map((request) => (
-                  <div key={request.id} className="p-4 bg-[#2C1810] rounded-lg border border-[#D4AF37]/50">
-                    <div className="flex items-center justify-between mb-2">
-                      <div>
-                        <p className="font-bold text-[#F5E6D3]">{request.id}</p>
-                        <p className="text-sm text-[#D4C5AA]">{request.date} • Available for Sale</p>
-                        <p className="text-xs text-[#D4AF37] mt-1">
-                          <IndianRupee className="inline size-3 mr-1" />
-                          Buyback Inventory
+          <div className="bg-[#3D2817] rounded-lg p-4 sm:p-6 border-2 border-[#8B6F47] shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-bold text-[#D4AF37]" style={{ fontFamily: "'Playfair Display', serif" }}>
+                  Buyback Sales - Admin to Sellers ({buybackSales.length})
+                </h2>
+                <p className="text-[#D4C5AA] text-xs sm:text-sm mt-1">
+                  Platform's sales invoices when selling buyback books to sellers (Admin is the seller)
+                </p>
+              </div>
+              <button
+                onClick={async () => {
+                  try {
+                    setLoadingBuybackSales(true);
+                    const orders = await apiService.getAllBuybackOrders();
+                    const sales: BuybackSale[] = orders.map((order: any) => ({
+                      id: order.trackingId || order._id,
+                      sellerId: order.userId?._id || order.userId,
+                      sellerName: order.userId?.storeName || order.userId?.name || order.customerName || 'Unknown Seller',
+                      buybackBookId: order.items[0]?.bookId?._id || '',
+                      bookTitle: order.items[0]?.bookId?.bookTitle || 'Unknown Book',
+                      author: order.items[0]?.bookId?.author || 'Unknown Author',
+                      isbn: order.items[0]?.bookId?.isbn || 'N/A',
+                      price: order.items[0]?.price || 0,
+                      quantity: order.items.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0),
+                      total: order.total || 0,
+                      date: new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+                      status: order.status || 'pending'
+                    }));
+                    setBuybackSales(sales);
+                    toast.success(`Refreshed ${sales.length} buyback sales!`);
+                  } catch (error) {
+                    console.error('Error refreshing buyback sales:', error);
+                    toast.error('Failed to refresh buyback sales');
+                  } finally {
+                    setLoadingBuybackSales(false);
+                  }
+                }}
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-[#8B6F47] hover:bg-[#D4AF37] text-[#F5E6D3] font-semibold rounded transition-all text-sm"
+              >
+                <RefreshCw className="size-4" />
+                <span className="hidden sm:inline">Refresh</span>
+              </button>
+            </div>
+            
+            {loadingBuybackSales ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#D4AF37] mx-auto mb-4"></div>
+                <p className="text-[#D4C5AA]">Loading buyback sales...</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {buybackSales.length > 0 ? (
+                  buybackSales.map((sale) => (
+                    <div key={sale.id} className="p-3 sm:p-4 bg-[#2C1810] rounded-lg border border-[#D4AF37]/50 hover:border-[#D4AF37] transition-all">
+                      {/* Header */}
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3 pb-3 border-b border-[#8B6F47]/30">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-bold text-[#D4AF37] text-sm sm:text-base truncate">{sale.id}</p>
+                            <span className="px-2 py-0.5 bg-[#D4AF37]/20 text-[#D4AF37] text-xs font-bold rounded border border-[#D4AF37]/40">
+                              ADMIN SALE
+                            </span>
+                          </div>
+                          <p className="text-xs sm:text-sm text-[#D4C5AA] truncate">
+                            {sale.date} • {sale.sellerName}
+                          </p>
+                        </div>
+                        <span className={`px-3 py-1 rounded text-xs font-bold whitespace-nowrap self-start ${
+                          sale.status === 'delivered' || sale.status === 'completed' ? 'bg-emerald-900/30 text-emerald-400 border border-emerald-700/50' :
+                          sale.status === 'shipped' ? 'bg-blue-900/30 text-blue-400 border border-blue-700/50' :
+                          sale.status === 'pending' ? 'bg-yellow-900/30 text-yellow-400 border border-yellow-700/50' :
+                          'bg-orange-900/30 text-orange-400 border border-orange-700/50'
+                        }`}>
+                          {sale.status === 'pending' ? 'Pickup-scheduled' : sale.status.charAt(0).toUpperCase() + sale.status.slice(1)}
+                        </span>
+                      </div>
+
+                      {/* Book Details */}
+                      <div className="mb-3">
+                        <p className="font-bold text-[#F5E6D3] text-sm sm:text-base mb-1">{sale.bookTitle}</p>
+                        <p className="text-xs sm:text-sm text-[#D4C5AA] mb-1">
+                          by {sale.author} • ISBN: {sale.isbn}
+                        </p>
+                        <p className="text-xs text-[#A08968]">
+                          Total Items: {sale.quantity}
                         </p>
                       </div>
-                      <span className={`px-3 py-1 rounded text-sm font-bold ${
-                        request.status === 'approved' ? 'bg-emerald-900/30 text-emerald-400 border border-emerald-700/50' :
-                        request.status === 'pending' ? 'bg-yellow-900/30 text-yellow-400 border border-yellow-700/50' :
-                        'bg-red-900/30 text-red-400 border border-red-700/50'
-                      }`}>
-                        {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                      </span>
-                    </div>
-                    <div className="mb-2">
-                      <p className="text-sm text-[#F5E6D3]">
-                        {request.bookTitle}
-                      </p>
-                      <p className="text-xs text-[#D4C5AA]">by {request.author} • ISBN: {request.isbn}</p>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-[#D4C5AA]">
-                        Condition: {request.condition}
-                      </p>
-                      <div className="flex items-center gap-3">
-                        <p className="text-[#D4AF37] font-bold">₹{request.sellingPrice || request.offeredPrice}</p>
+
+                      {/* Footer */}
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-3 border-t border-[#8B6F47]/30">
+                        <p className="text-lg sm:text-xl font-bold text-[#D4AF37]">₹{sale.total}</p>
                         <button
-                          className="px-4 py-1.5 bg-[#D4AF37] hover:bg-[#F5E6D3] text-[#2C1810] font-semibold rounded text-sm transition-all"
                           onClick={() => {
-                            toast.info('This would generate a sales listing for sellers to purchase');
+                            // Find the full order to generate invoice
+                            const order: Order = {
+                              id: sale.id,
+                              userId: sale.sellerId,
+                              items: [{
+                                bookId: sale.buybackBookId,
+                                quantity: sale.quantity,
+                                book: {
+                                  id: sale.buybackBookId,
+                                  title: sale.bookTitle,
+                                  author: sale.author,
+                                  isbn: sale.isbn,
+                                  price: sale.price,
+                                  image: '',
+                                  category: '',
+                                  condition: 'used',
+                                  description: '',
+                                  mrp: sale.price,
+                                  stock: 0,
+                                  sellerId: 'admin',
+                                  sellerName: 'BOI PARA Admin',
+                                  rating: 0,
+                                  reviews: 0
+                                }
+                              }],
+                              total: sale.total,
+                              status: sale.status,
+                              date: sale.date,
+                              shippingAddress: 'N/A',
+                              customerName: sale.sellerName,
+                              customerEmail: '',
+                              customerPhone: '',
+                              paymentMethod: 'UPI',
+                              trackingNumber: sale.id
+                            };
+                            handleGenerateAdminInvoice(order);
                           }}
+                          className="w-full sm:w-auto px-4 py-2 bg-[#8B6F47] hover:bg-[#D4AF37] text-[#F5E6D3] font-semibold rounded text-xs sm:text-sm transition-all flex items-center justify-center gap-2"
                         >
-                          Create Listing
+                          <Download className="size-4" />
+                          Generate Invoice
                         </button>
                       </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="p-8 bg-[#2C1810] rounded-lg border border-[#8B6F47] text-center">
+                    <RefreshCw className="w-12 h-12 text-[#8B6F47] mx-auto mb-3" />
+                    <p className="text-[#D4C5AA]">No buyback sales yet</p>
+                    <p className="text-xs text-[#8B6F47] mt-2">Sales will appear here when sellers purchase approved buyback books</p>
                   </div>
-                ))
-              ) : (
-                <div className="p-8 bg-[#2C1810] rounded-lg border border-[#8B6F47] text-center">
-                  <RefreshCw className="w-12 h-12 text-[#8B6F47] mx-auto mb-3" />
-                  <p className="text-[#D4C5AA]">No buyback requests found</p>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -2474,9 +2617,9 @@ export function AdminDashboard() {
 
         {/* Raised Tickets Tab */}
         {activeTab === 'tickets' && (
-          <div className="bg-[#3D2817] rounded-lg p-6 border-2 border-[#8B6F47] shadow-xl">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-[#D4AF37]" style={{ fontFamily: "'Playfair Display', serif" }}>
+          <div className="bg-[#3D2817] rounded-lg p-4 sm:p-6 border-2 border-[#8B6F47] shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-[#D4AF37]" style={{ fontFamily: "'Playfair Display', serif" }}>
                 Raised Support Tickets ({supportTickets.length})
               </h2>
               <button
@@ -2493,13 +2636,13 @@ export function AdminDashboard() {
                     setLoadingSupportTickets(false);
                   }
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-[#8B6F47] hover:bg-[#D4AF37] text-[#F5E6D3] font-semibold rounded transition-all"
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-[#8B6F47] hover:bg-[#D4AF37] text-[#F5E6D3] font-semibold rounded transition-all text-sm"
               >
                 <RefreshCw className="size-4" />
-                Refresh
+                <span className="hidden sm:inline">Refresh</span>
               </button>
             </div>
-            <p className="text-[#D4C5AA] mb-4 text-sm">
+            <p className="text-[#D4C5AA] mb-4 text-xs sm:text-sm">
               Review and respond to support tickets submitted by users
             </p>
             {loadingSupportTickets ? (
@@ -2511,17 +2654,17 @@ export function AdminDashboard() {
               <div className="space-y-3">
                 {supportTickets && supportTickets.length > 0 ? (
                   supportTickets.map((ticket) => (
-                    <div key={ticket._id} className={`p-4 bg-[#2C1810] rounded-lg border ${
+                    <div key={ticket._id} className={`p-3 sm:p-4 bg-[#2C1810] rounded-lg border ${
                       ticket.status === 'open' ? 'border-orange-700/50' :
                       ticket.status === 'in-progress' ? 'border-blue-700/50' :
                       ticket.status === 'resolved' ? 'border-emerald-700/50' :
                       'border-[#8B6F47]'
                     }`}>
-                      <div className="flex items-start justify-between mb-3">
+                      <div className="mb-3">
                         <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="font-bold text-[#F5E6D3]">{ticket.subject}</h3>
-                            <span className={`px-3 py-1 rounded text-xs font-bold ${
+                          <h3 className="font-bold text-[#F5E6D3] text-sm sm:text-base mb-2 break-words">{ticket.subject}</h3>
+                          <div className="flex flex-wrap items-center gap-2 mb-3">
+                            <span className={`px-2 sm:px-3 py-1 rounded text-xs font-bold whitespace-nowrap ${
                               ticket.status === 'open' ? 'bg-orange-900/30 text-orange-400 border border-orange-700/50' :
                               ticket.status === 'in-progress' ? 'bg-blue-900/30 text-blue-400 border border-blue-700/50' :
                               ticket.status === 'resolved' ? 'bg-emerald-900/30 text-emerald-400 border border-emerald-700/50' :
@@ -2529,7 +2672,7 @@ export function AdminDashboard() {
                             }`}>
                               {ticket.status.toUpperCase().replace('-', ' ')}
                             </span>
-                            <span className={`px-2 py-1 rounded text-xs font-bold ${
+                            <span className={`px-2 py-1 rounded text-xs font-bold whitespace-nowrap ${
                               ticket.priority === 'urgent' ? 'bg-red-900/30 text-red-400 border border-red-700/50' :
                               ticket.priority === 'high' ? 'bg-orange-900/30 text-orange-400 border border-orange-700/50' :
                               ticket.priority === 'medium' ? 'bg-yellow-900/30 text-yellow-400 border border-yellow-700/50' :
@@ -2538,100 +2681,104 @@ export function AdminDashboard() {
                               {ticket.priority?.toUpperCase() || 'MEDIUM'}
                             </span>
                           </div>
-                          <p className="text-sm text-[#D4C5AA] mb-2">
+                          <p className="text-xs sm:text-sm text-[#D4C5AA] mb-2 break-words">
                             <span className="font-semibold text-[#F5E6D3]">From:</span> {ticket.name} ({ticket.email})
                           </p>
-                          <p className="text-sm text-[#D4C5AA] mb-2">
+                          <p className="text-xs sm:text-sm text-[#D4C5AA] mb-2">
                             <span className="font-semibold text-[#F5E6D3]">Role:</span> {ticket.userRole?.toUpperCase() || 'GUEST'}
                           </p>
-                          <p className="text-sm text-[#D4C5AA] mb-2">
+                          <p className="text-xs sm:text-sm text-[#D4C5AA] mb-2 break-words">
                             <span className="font-semibold text-[#F5E6D3]">Submitted:</span> {new Date(ticket.createdAt).toLocaleString()}
                           </p>
                           <div className="mt-3 p-3 bg-[#3D2817] rounded border border-[#8B6F47]">
-                            <p className="text-sm text-[#F5E6D3]">{ticket.message}</p>
+                            <p className="text-xs sm:text-sm text-[#F5E6D3] break-words">{ticket.message}</p>
                           </div>
                           {ticket.adminNotes && (
                             <div className="mt-3 p-3 bg-blue-900/20 rounded border border-blue-700/50">
                               <p className="text-xs text-blue-400 font-semibold mb-1">Admin Notes:</p>
-                              <p className="text-sm text-[#D4C5AA]">{ticket.adminNotes}</p>
+                              <p className="text-xs sm:text-sm text-[#D4C5AA] break-words">{ticket.adminNotes}</p>
                             </div>
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 mt-4 pt-3 border-t border-[#8B6F47]">
-                        <select
-                          value={ticket.status}
-                          onChange={async (e) => {
-                            try {
-                              await apiService.updateSupportTicketStatus(ticket._id, e.target.value);
-                              setSupportTickets(prev => prev.map(t => 
-                                t._id === ticket._id ? { ...t, status: e.target.value } : t
-                              ));
-                              toast.success('Ticket status updated');
-                            } catch (error) {
-                              console.error('Error updating ticket status:', error);
-                              toast.error('Failed to update ticket status');
-                            }
-                          }}
-                          className="px-3 py-1.5 bg-[#3D2817] border border-[#8B6F47] rounded text-[#F5E6D3] text-sm focus:outline-none focus:border-[#D4AF37]"
-                        >
-                          <option value="open">Open</option>
-                          <option value="in-progress">In Progress</option>
-                          <option value="resolved">Resolved</option>
-                          <option value="closed">Closed</option>
-                        </select>
-                        <select
-                          value={ticket.priority || 'medium'}
-                          onChange={async (e) => {
-                            try {
-                              await apiService.updateSupportTicketStatus(ticket._id, ticket.status, e.target.value);
-                              setSupportTickets(prev => prev.map(t => 
-                                t._id === ticket._id ? { ...t, priority: e.target.value } : t
-                              ));
-                              toast.success('Ticket priority updated');
-                            } catch (error) {
-                              console.error('Error updating ticket priority:', error);
-                              toast.error('Failed to update ticket priority');
-                            }
-                          }}
-                          className="px-3 py-1.5 bg-[#3D2817] border border-[#8B6F47] rounded text-[#F5E6D3] text-sm focus:outline-none focus:border-[#D4AF37]"
-                        >
-                          <option value="low">Low Priority</option>
-                          <option value="medium">Medium Priority</option>
-                          <option value="high">High Priority</option>
-                          <option value="urgent">Urgent</option>
-                        </select>
-                        <button
-                          onClick={() => {
-                            const notes = prompt('Add admin notes:');
-                            if (notes) {
-                              apiService.updateSupportTicketStatus(ticket._id, ticket.status, ticket.priority, notes)
-                                .then(() => {
-                                  setSupportTickets(prev => prev.map(t => 
-                                    t._id === ticket._id ? { ...t, adminNotes: notes } : t
-                                  ));
-                                  toast.success('Admin notes added');
-                                })
-                                .catch(error => {
-                                  console.error('Error adding notes:', error);
-                                  toast.error('Failed to add notes');
-                                });
-                            }
-                          }}
-                          className="px-4 py-1.5 bg-[#8B6F47] hover:bg-[#D4AF37] text-[#F5E6D3] font-semibold rounded text-sm transition-all"
-                        >
-                          Add Notes
-                        </button>
-                        <button
-                          onClick={() => {
-                            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(ticket.email)}&su=${encodeURIComponent(`Re: ${ticket.subject}`)}`;
-                            window.open(gmailUrl, '_blank');
-                          }}
-                          className="ml-auto px-4 py-1.5 bg-blue-700 hover:bg-blue-600 text-white font-semibold rounded text-sm transition-all inline-flex items-center gap-2"
-                        >
-                          <Mail className="size-4" />
-                          Reply via Email
-                        </button>
+                      <div className="flex flex-col gap-2 mt-4 pt-3 border-t border-[#8B6F47]">
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <select
+                            value={ticket.status}
+                            onChange={async (e) => {
+                              try {
+                                await apiService.updateSupportTicketStatus(ticket._id, e.target.value);
+                                setSupportTickets(prev => prev.map(t => 
+                                  t._id === ticket._id ? { ...t, status: e.target.value } : t
+                                ));
+                                toast.success('Ticket status updated');
+                              } catch (error) {
+                                console.error('Error updating ticket status:', error);
+                                toast.error('Failed to update ticket status');
+                              }
+                            }}
+                            className="flex-1 px-3 py-2 bg-[#3D2817] border border-[#8B6F47] rounded text-[#F5E6D3] text-xs sm:text-sm focus:outline-none focus:border-[#D4AF37]"
+                          >
+                            <option value="open">Open</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="resolved">Resolved</option>
+                            <option value="closed">Closed</option>
+                          </select>
+                          <select
+                            value={ticket.priority || 'medium'}
+                            onChange={async (e) => {
+                              try {
+                                await apiService.updateSupportTicketStatus(ticket._id, ticket.status, e.target.value);
+                                setSupportTickets(prev => prev.map(t => 
+                                  t._id === ticket._id ? { ...t, priority: e.target.value } : t
+                                ));
+                                toast.success('Ticket priority updated');
+                              } catch (error) {
+                                console.error('Error updating ticket priority:', error);
+                                toast.error('Failed to update ticket priority');
+                              }
+                            }}
+                            className="flex-1 px-3 py-2 bg-[#3D2817] border border-[#8B6F47] rounded text-[#F5E6D3] text-xs sm:text-sm focus:outline-none focus:border-[#D4AF37]"
+                          >
+                            <option value="low">Low Priority</option>
+                            <option value="medium">Medium Priority</option>
+                            <option value="high">High Priority</option>
+                            <option value="urgent">Urgent</option>
+                          </select>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <button
+                            onClick={() => {
+                              const notes = prompt('Add admin notes:');
+                              if (notes) {
+                                apiService.updateSupportTicketStatus(ticket._id, ticket.status, ticket.priority, notes)
+                                  .then(() => {
+                                    setSupportTickets(prev => prev.map(t => 
+                                      t._id === ticket._id ? { ...t, adminNotes: notes } : t
+                                    ));
+                                    toast.success('Admin notes added');
+                                  })
+                                  .catch(error => {
+                                    console.error('Error adding notes:', error);
+                                    toast.error('Failed to add notes');
+                                  });
+                              }
+                            }}
+                            className="flex-1 px-3 sm:px-4 py-2 bg-[#8B6F47] hover:bg-[#D4AF37] text-[#F5E6D3] font-semibold rounded text-xs sm:text-sm transition-all"
+                          >
+                            Add Notes
+                          </button>
+                          <button
+                            onClick={() => {
+                              const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(ticket.email)}&su=${encodeURIComponent(`Re: ${ticket.subject}`)}`;
+                              window.open(gmailUrl, '_blank');
+                            }}
+                            className="flex-1 px-3 sm:px-4 py-2 bg-blue-700 hover:bg-blue-600 text-white font-semibold rounded text-xs sm:text-sm transition-all inline-flex items-center justify-center gap-2"
+                          >
+                            <Mail className="size-4" />
+                            Reply via Email
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))
@@ -3246,37 +3393,37 @@ export function AdminDashboard() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-gradient-to-br from-[#3D2817] via-[#2C1810] to-[#3D2817] rounded-2xl p-8 border-2 border-[#D4AF37] shadow-2xl w-[95%] max-w-5xl max-h-[90vh] overflow-y-auto">
               {/* Header */}
-              <div className="flex items-start justify-between mb-6 pb-4 border-b-2 border-[#8B6F47]/50">
-                <div>
-                  <h2 className="text-3xl font-bold text-[#D4AF37] mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>
+              <div className="flex flex-col gap-3 mb-6 pb-4 border-b-2 border-[#8B6F47]/50">
+                <div className="flex items-start justify-between gap-2">
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-[#D4AF37] flex-1 min-w-0" style={{ fontFamily: "'Playfair Display', serif" }}>
                     {isSellerOrder ? 'Seller Order Details' : 'Customer Order Details'}
                   </h2>
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg font-mono text-[#F5E6D3] bg-[#8B6F47]/20 px-3 py-1 rounded-lg border border-[#8B6F47]">
-                      {order.id}
-                    </span>
-                    <span className={`px-4 py-1.5 rounded-full text-sm font-bold border-2 ${
-                      order.status === 'new' || order.status === 'pending' ? 'bg-yellow-900/40 text-yellow-300 border-yellow-600' :
-                      order.status === 'processing' || order.status === 'accepted' || order.status === 'packed' ? 'bg-blue-900/40 text-blue-300 border-blue-600' :
-                      order.status === 'delivered' ? 'bg-emerald-900/40 text-emerald-300 border-emerald-600' :
-                      order.status === 'shipped' ? 'bg-purple-900/40 text-purple-300 border-purple-600' :
-                      'bg-red-900/40 text-red-300 border-red-600'
-                    }`}>
-                      {order.status.toUpperCase()}
-                    </span>
-                    {isSellerOrder && (
-                      <span className="px-3 py-1.5 bg-emerald-900/40 text-emerald-300 border-2 border-emerald-600 rounded-full text-xs font-bold">
-                        BUYBACK ORDER
-                      </span>
-                    )}
-                  </div>
+                  <button
+                    className="p-2 sm:p-2.5 bg-red-700/90 hover:bg-red-600 text-white font-semibold rounded-lg transition-all hover:scale-110 shadow-lg flex-shrink-0"
+                    onClick={() => setShowOrderDetails(false)}
+                  >
+                    <X className="size-4 sm:size-5" />
+                  </button>
                 </div>
-                <button
-                  className="p-2.5 bg-red-700/90 hover:bg-red-600 text-white font-semibold rounded-lg transition-all hover:scale-110 shadow-lg"
-                  onClick={() => setShowOrderDetails(false)}
-                >
-                  <X className="size-5" />
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs sm:text-sm font-mono text-[#F5E6D3] bg-[#8B6F47]/20 px-2 sm:px-3 py-1 rounded-lg border border-[#8B6F47] break-all">
+                    {order.id}
+                  </span>
+                  <span className={`px-2 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-bold border-2 whitespace-nowrap ${
+                    order.status === 'new' || order.status === 'pending' ? 'bg-yellow-900/40 text-yellow-300 border-yellow-600' :
+                    order.status === 'processing' || order.status === 'accepted' || order.status === 'packed' ? 'bg-blue-900/40 text-blue-300 border-blue-600' :
+                    order.status === 'delivered' ? 'bg-emerald-900/40 text-emerald-300 border-emerald-600' :
+                    order.status === 'shipped' ? 'bg-purple-900/40 text-purple-300 border-purple-600' :
+                    'bg-red-900/40 text-red-300 border-red-600'
+                  }`}>
+                    {order.status.toUpperCase()}
+                  </span>
+                  {isSellerOrder && (
+                    <span className="px-2 sm:px-3 py-1 sm:py-1.5 bg-emerald-900/40 text-emerald-300 border-2 border-emerald-600 rounded-full text-xs font-bold whitespace-nowrap">
+                      BUYBACK ORDER
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Order Info Grid */}

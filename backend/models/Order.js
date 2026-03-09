@@ -20,7 +20,8 @@ const orderSchema = new mongoose.Schema({
   customerEmail: String,
   customerPhone: String,
   paymentMethod: String,
-  trackingId: String
+  trackingId: String,
+  isBuybackOrder: { type: Boolean, default: false }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Order', orderSchema);

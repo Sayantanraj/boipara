@@ -453,16 +453,6 @@ export function LoginPage() {
             Continue as Guest
           </button>
 
-          <div className="p-2.5 bg-[#2C1810] rounded-md border border-[#8B6F47]">
-            <p className="text-xs text-[#D4AF37] font-semibold mb-1">Demo Accounts:</p>
-            <div className="space-y-0 text-xs text-[#D4C5AA] leading-tight">
-              <p>• Customer: customer@test.com</p>
-              <p>• Seller: seller@test.com</p>
-              <p>• Admin: admin@test.com</p>
-              <p className="text-[#A08968] mt-1">Any password works</p>
-            </div>
-          </div>
-
           <div className="mt-3 text-center">
             <Link to="/" className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-[#3D2817] border border-[#8B6F47] hover:bg-[#D4AF37] text-[#D4AF37] hover:text-white transition-all shadow-sm hover:shadow-md">
               <ArrowLeft className="size-5" />

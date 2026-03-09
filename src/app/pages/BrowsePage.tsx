@@ -62,6 +62,7 @@ export function BrowsePage() {
   const [searchParams] = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedCondition, setSelectedCondition] = useState<string>('all');
+  const [showBuybackOnly, setShowBuybackOnly] = useState(false);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 2000]);
   const [sortBy, setSortBy] = useState('popularity');
   const [showFilters, setShowFilters] = useState(false);
@@ -129,8 +130,9 @@ export function BrowsePage() {
       book.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
       book.isbn.includes(searchQuery);
     const matchesSeller = !sellerParam || book.sellerId === sellerParam;
+    const matchesBuyback = !showBuybackOnly || (book as any).isBuyback === true;
 
-    return matchesCategory && matchesCondition && matchesPrice && matchesSearch && matchesSeller;
+    return matchesCategory && matchesCondition && matchesPrice && matchesSearch && matchesSeller && matchesBuyback;
   });
 
   filteredBooks = [...filteredBooks].sort((a, b) => {
@@ -247,6 +249,25 @@ export function BrowsePage() {
                   </div>
                 </div>
 
+                {/* Buyback Books Filter */}
+                <div className="mb-6">
+                  <h4 className="font-semibold mb-3 text-[#F5E6D3] text-sm">Book Type</h4>
+                  <label className="flex items-center gap-2 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={showBuybackOnly}
+                      onChange={(e) => setShowBuybackOnly(e.target.checked)}
+                      className="w-4 h-4 accent-[#D4AF37]"
+                    />
+                    <span className="text-sm text-[#D4C5AA] group-hover:text-[#D4AF37] transition-colors">Buyback Books Only</span>
+                  </label>
+                  {showBuybackOnly && (
+                    <p className="text-xs text-emerald-400 mt-2 ml-6">
+                      ✓ Showing only buyback books
+                    </p>
+                  )}
+                </div>
+
                 {/* Price Range */}
                 <div className="mb-6">
                   <h4 className="font-semibold mb-3 text-[#F5E6D3] text-sm">Price Range</h4>
@@ -296,6 +317,7 @@ export function BrowsePage() {
                     setSelectedCategory('all');
                     setSelectedCondition('all');
                     setPriceRange([0, 2000]);
+                    setShowBuybackOnly(false);
                   }}
                   className="w-full bg-gradient-to-r from-[#8B6F47] to-[#6B5537] hover:from-[#D4AF37] hover:to-[#B8941F] text-[#F5E6D3] font-bold py-2 rounded-md transition-all shadow-md text-sm"
                 >
@@ -379,6 +401,7 @@ export function BrowsePage() {
                     setSelectedCategory('all');
                     setSelectedCondition('all');
                     setPriceRange([0, 2000]);
+                    setShowBuybackOnly(false);
                   }}
                   className="bg-gradient-to-r from-[#8B6F47] to-[#6B5537] hover:from-[#D4AF37] hover:to-[#B8941F] text-[#F5E6D3] font-bold px-6 py-2 rounded-md transition-all shadow-md"
                 >

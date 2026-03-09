@@ -17,7 +17,7 @@ export function ProductCard({ book, onAddToCart, onToggleWishlist, isWishlisted 
 
   const getConditionBadge = () => {
     const badges = {
-      'new': { text: 'NEW', color: 'bg-emerald-700 text-white' },
+      'new': { text: 'NEW', color: 'text-white', bgColor: '#9FC131' },
       'like-new': { text: 'LIKE NEW', color: 'bg-blue-700 text-white' },
       'used': { text: 'USED', color: 'bg-orange-700 text-white' },
     };
@@ -39,9 +39,20 @@ export function ProductCard({ book, onAddToCart, onToggleWishlist, isWishlisted 
             />
             
             {/* Condition Badge - On image */}
-            <div className={`absolute top-1 left-1 ${conditionBadge.color} text-[9px] px-1.5 py-0.5 rounded font-bold shadow-lg z-10`}>
+            <div 
+              className={`absolute top-1 left-1 ${conditionBadge.color} text-[9px] px-1.5 py-0.5 rounded font-bold shadow-lg z-10`}
+              style={book.condition === 'new' ? { backgroundColor: conditionBadge.bgColor } : {}}
+            >
               {conditionBadge.text}
             </div>
+            
+            {/* Buyback Badge - On image */}
+            {(book as any).isBuyback && (
+              <div className="absolute top-6 left-1 bg-gradient-to-r from-purple-600 to-purple-700 text-white text-[9px] px-1.5 py-0.5 rounded font-bold shadow-lg z-10 flex items-center gap-0.5">
+                <ShoppingBag className="size-2.5" />
+                BUYBACK
+              </div>
+            )}
             
             {/* Discount Badge - On image */}
             {discountPercent > 0 && (

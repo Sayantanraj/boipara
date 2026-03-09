@@ -405,6 +405,79 @@ class ApiService {
     });
   }
 
+  async createBuybackListing(requestId: string) {
+    return this.request(`/buyback/${requestId}/create-listing`, {
+      method: 'POST',
+    });
+  }
+
+  // Seller - Purchase buyback books
+  async purchaseBuybackBooks(orderData: any) {
+    return this.request('/buyback/purchase', {
+      method: 'POST',
+      body: JSON.stringify(orderData),
+    });
+  }
+
+  async getMyBuybackOrders() {
+    return this.request('/buyback/my-orders');
+  }
+
+  // Customer - Get buyback purchase orders for a specific buyback request
+  async getMyBuybackPurchaseOrders(buybackRequestId: string) {
+    try {
+      console.log('API: Fetching purchase orders for buyback request:', buybackRequestId);
+      const result = await this.request(`/buyback/customer/purchase-orders/${buybackRequestId}`);
+      console.log('API: Purchase orders result:', result);
+      return result;
+    } catch (error) {
+      console.error('API Error - getMyBuybackPurchaseOrders:', error);
+      return [];
+    }
+  }
+
+  // Customer - Get all buyback orders (to match with requests)
+  async getAllBuybackOrdersForCustomer() {
+    try {
+      console.log('API: Fetching all buyback orders for customer');
+      const result = await this.request('/buyback/customer/all-orders');
+      console.log('API: All buyback orders result:', result);
+      return result;
+    } catch (error) {
+      console.error('API Error - getAllBuybackOrdersForCustomer:', error);
+      return [];
+    }
+  }
+
+  // Customer - Update buyback order status
+  async updateBuybackOrderStatus(orderId: string, status: string) {
+    return this.request(`/buyback/orders/${orderId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  // Admin - Get all buyback orders (seller purchases)
+  async getAllBuybackOrders() {
+    try {
+      console.log('API: Fetching all buyback orders...');
+      console.log('API: Token exists:', !!this.token);
+      console.log('API: Making request to /buyback/admin/all-orders');
+      
+      const result = await this.request('/buyback/admin/all-orders');
+      console.log('API: Successfully fetched buyback orders:', result.length);
+      return result;
+    } catch (error) {
+      console.error('API Error - getAllBuybackOrders:', error);
+      console.error('API Error details:', {
+        message: error.message,
+        hasToken: !!this.token,
+        endpoint: '/buyback/admin/all-orders'
+      });
+      throw error;
+    }
+  }
+
   // Notifications
   async getNotifications() {
     return this.request('/notifications');

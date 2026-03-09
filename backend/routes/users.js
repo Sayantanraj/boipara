@@ -56,38 +56,31 @@ router.get('/sellers/:sellerId/stats', auth, async (req, res) => {
 
     // Get seller's books
     const books = await Book.find({ sellerId });
+    const bookIds = books.map(b => b._id.toString());
     
-    // Get orders containing seller's books
-    const orders = await Order.find({
-      'items.book.sellerId': sellerId,
+    // Get all orders
+    const allOrders = await Order.find({
       status: { $in: ['delivered', 'completed'] }
-    });
+    }).populate('items.bookId');
 
-    // Calculate stats
-    const totalBooks = books.length;
-    const totalSales = orders.reduce((sum, order) => {
-      return sum + order.items
-        .filter(item => item.book.sellerId === sellerId)
-        .reduce((itemSum, item) => itemSum + item.quantity, 0);
-    }, 0);
-    
-    const totalRevenue = orders.reduce((sum, order) => {
-      return sum + order.items
-        .filter(item => item.book.sellerId === sellerId)
-        .reduce((itemSum, item) => itemSum + (item.price * item.quantity), 0);
-    }, 0);
+    // Filter orders that contain seller's books
+    let totalSales = 0;
+    let totalRevenue = 0;
+    const bookSales = {};
+
+    allOrders.forEach(order => {
+      order.items.forEach(item => {
+        if (item.bookId && bookIds.includes(item.bookId._id.toString())) {
+          totalSales += item.quantity;
+          totalRevenue += (item.price * item.quantity);
+          
+          const bookId = item.bookId._id.toString();
+          bookSales[bookId] = (bookSales[bookId] || 0) + item.quantity;
+        }
+      });
+    });
 
     // Get top performing books
-    const bookSales = {};
-    orders.forEach(order => {
-      order.items
-        .filter(item => item.book.sellerId === sellerId)
-        .forEach(item => {
-          const bookId = item.bookId;
-          bookSales[bookId] = (bookSales[bookId] || 0) + item.quantity;
-        });
-    });
-
     const topBookIds = Object.entries(bookSales)
       .sort(([,a], [,b]) => b - a)
       .slice(0, 3)
@@ -104,7 +97,7 @@ router.get('/sellers/:sellerId/stats', auth, async (req, res) => {
         location: seller.location,
         rating: seller.rating || 4.5
       },
-      totalBooks,
+      totalBooks: books.length,
       totalSales,
       totalRevenue,
       avgRating: seller.rating || 4.5,
@@ -113,7 +106,7 @@ router.get('/sellers/:sellerId/stats', auth, async (req, res) => {
         title: book.title,
         author: book.author,
         price: book.price,
-        sales: bookSales[book._id] || 0
+        sales: bookSales[book._id.toString()] || 0
       }))
     };
 

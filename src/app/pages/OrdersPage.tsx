@@ -422,7 +422,7 @@ export function OrdersPage() {
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-[#D4C5AA]">Shipping</span>
-                      <span className="text-[#F5E6D3] font-semibold text-emerald-400">FREE</span>
+                      <span className="text-[#F5E6D3] font-semibold" style={{ color: '#9FC131' }}>FREE</span>
                     </div>
                     <div className="pt-2 border-t border-[#8B6F47] flex justify-between">
                       <span className="font-bold text-[#D4AF37]">Total</span>

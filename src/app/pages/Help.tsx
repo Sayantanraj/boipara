@@ -311,39 +311,39 @@ export function Help({ user }: HelpProps) {
               <p className="text-[#D4C5AA]">Multiple ways to reach our support team</p>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               {/* Email Support */}
-              <div className="bg-[#2C1810] border-2 border-[#8B6F47] rounded-lg p-6 hover:border-[#D4AF37] transition-colors">
-                <div className="flex items-start gap-4">
-                  <div className="p-4 bg-blue-900/30 rounded-lg">
-                    <Mail className="size-6 text-blue-400" />
+              <div className="bg-[#2C1810] border-2 border-[#8B6F47] rounded-lg p-4 sm:p-6 hover:border-[#D4AF37] transition-colors">
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="p-3 sm:p-4 bg-blue-900/30 rounded-lg flex-shrink-0">
+                    <Mail className="size-5 sm:size-6 text-blue-400" />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-[#F5E6D3] mb-2">Email Support</h3>
-                    <p className="text-sm text-[#D4C5AA] mb-3">We typically respond within 24 hours</p>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base sm:text-lg font-semibold text-[#F5E6D3] mb-1 sm:mb-2">Email Support</h3>
+                    <p className="text-xs sm:text-sm text-[#D4C5AA] mb-2 sm:mb-3">We typically respond within 24 hours</p>
                     <a
                       href={`mailto:${platformSettings.supportEmail}`}
-                      className="text-[#D4AF37] hover:text-[#FFD700] font-medium inline-flex items-center gap-1 transition-colors"
+                      className="text-sm sm:text-base text-[#D4AF37] hover:text-[#FFD700] font-medium inline-flex items-center gap-1 transition-colors break-all"
                     >
-                      {platformSettings.supportEmail}
-                      <span className="text-sm">→</span>
+                      <span className="break-all">{platformSettings.supportEmail}</span>
+                      <span className="text-sm flex-shrink-0">→</span>
                     </a>
                   </div>
                 </div>
               </div>
 
               {/* Phone Support */}
-              <div className="bg-[#2C1810] border-2 border-[#8B6F47] rounded-lg p-6 hover:border-[#D4AF37] transition-colors">
-                <div className="flex items-start gap-4">
-                  <div className="p-4 bg-emerald-900/30 rounded-lg">
-                    <Phone className="size-6 text-emerald-400" />
+              <div className="bg-[#2C1810] border-2 border-[#8B6F47] rounded-lg p-4 sm:p-6 hover:border-[#D4AF37] transition-colors">
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="p-3 sm:p-4 bg-emerald-900/30 rounded-lg flex-shrink-0">
+                    <Phone className="size-5 sm:size-6 text-emerald-400" />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-[#F5E6D3] mb-2">Phone Support</h3>
-                    <p className="text-sm text-[#D4C5AA] mb-3">Mon-Sat: 10:00 AM - 6:00 PM IST</p>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base sm:text-lg font-semibold text-[#F5E6D3] mb-1 sm:mb-2">Phone Support</h3>
+                    <p className="text-xs sm:text-sm text-[#D4C5AA] mb-2 sm:mb-3">Mon-Sat: 10:00 AM - 6:00 PM IST</p>
                     <a
                       href={`tel:${platformSettings.phone}`}
-                      className="text-[#D4AF37] hover:text-[#FFD700] font-medium inline-flex items-center gap-1 transition-colors"
+                      className="text-sm sm:text-base text-[#D4AF37] hover:text-[#FFD700] font-medium inline-flex items-center gap-1 transition-colors"
                     >
                       {platformSettings.phone}
                       <span className="text-sm">→</span>
@@ -353,17 +353,17 @@ export function Help({ user }: HelpProps) {
               </div>
 
               {/* Live Chat */}
-              <div className="bg-[#2C1810] border-2 border-[#8B6F47] rounded-lg p-6 hover:border-[#D4AF37] transition-colors">
-                <div className="flex items-start gap-4">
-                  <div className="p-4 bg-purple-900/30 rounded-lg">
-                    <MessageCircle className="size-6 text-purple-400" />
+              <div className="bg-[#2C1810] border-2 border-[#8B6F47] rounded-lg p-4 sm:p-6 hover:border-[#D4AF37] transition-colors">
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="p-3 sm:p-4 bg-purple-900/30 rounded-lg flex-shrink-0">
+                    <MessageCircle className="size-5 sm:size-6 text-purple-400" />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-[#F5E6D3] mb-2">Live Chat</h3>
-                    <p className="text-sm text-[#D4C5AA] mb-3">Chat with our support team in real-time</p>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base sm:text-lg font-semibold text-[#F5E6D3] mb-1 sm:mb-2">Live Chat</h3>
+                    <p className="text-xs sm:text-sm text-[#D4C5AA] mb-2 sm:mb-3">Chat with our support team in real-time</p>
                     <button
                       onClick={() => toast.success('Live chat feature coming soon!')}
-                      className="text-[#D4AF37] hover:text-[#FFD700] font-medium inline-flex items-center gap-1 transition-colors"
+                      className="text-sm sm:text-base text-[#D4AF37] hover:text-[#FFD700] font-medium inline-flex items-center gap-1 transition-colors"
                     >
                       Start Chat
                       <span className="text-sm">→</span>
@@ -373,14 +373,14 @@ export function Help({ user }: HelpProps) {
               </div>
 
               {/* Office Location */}
-              <div className="bg-[#2C1810] border-2 border-[#8B6F47] rounded-lg p-6 hover:border-[#D4AF37] transition-colors">
-                <div className="flex items-start gap-4">
-                  <div className="p-4 bg-orange-900/30 rounded-lg">
-                    <MapPin className="size-6 text-orange-400" />
+              <div className="bg-[#2C1810] border-2 border-[#8B6F47] rounded-lg p-4 sm:p-6 hover:border-[#D4AF37] transition-colors">
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="p-3 sm:p-4 bg-orange-900/30 rounded-lg flex-shrink-0">
+                    <MapPin className="size-5 sm:size-6 text-orange-400" />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-[#F5E6D3] mb-2">Our Office</h3>
-                    <p className="text-sm text-[#D4C5AA]">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base sm:text-lg font-semibold text-[#F5E6D3] mb-1 sm:mb-2">Our Office</h3>
+                    <p className="text-xs sm:text-sm text-[#D4C5AA] leading-relaxed">
                       {platformSettings.address}<br />
                       India
                     </p>

@@ -19,7 +19,9 @@ export function SellerDashboard() {
   
   // Mock data for demo - in real app, these would come from API
   const orders: Order[] = [];
-  const buybackOrders: Order[] = [];
+  
+  // Real buyback orders from database
+  const [buybackOrders, setBuybackOrders] = useState<Order[]>([]);
   
   // Real data from database
   const [approvedBuybackBooks, setApprovedBuybackBooks] = useState<BuybackRequest[]>([]);
@@ -229,6 +231,9 @@ export function SellerDashboard() {
   // Expanded orders for tracking
   const [expandedOrders, setExpandedOrders] = useState<string[]>([]);
   
+  // Expanded returns for details
+  const [expandedReturns, setExpandedReturns] = useState<string[]>([]);
+  
   // Invoice preview state
   const [showInvoicePreview, setShowInvoicePreview] = useState(false);
   const [previewingOrder, setPreviewingOrder] = useState<any | null>(null);
@@ -237,6 +242,51 @@ export function SellerDashboard() {
   useEffect(() => {
     localStorage.setItem('boiParaOrderStatuses', JSON.stringify(orderStatuses));
   }, [orderStatuses]);
+
+  // Load seller's buyback orders from database
+  useEffect(() => {
+    const loadBuybackOrders = async () => {
+      if (!user?.id || user.role !== 'seller') return;
+      
+      try {
+        const orders = await apiService.getMyBuybackOrders();
+        console.log('📦 Loaded buyback orders from database:', orders.length);
+        // Transform orders to match expected format
+        const formattedOrders = orders.map((order: any) => ({
+          id: order._id,
+          userId: order.userId,
+          items: order.items.map((item: any) => ({
+            book: {
+              id: item.bookId._id,
+              title: item.bookId.bookTitle || item.bookId.title,
+              author: item.bookId.author,
+              price: item.price,
+              image: item.bookId.image,
+              condition: item.bookId.condition
+            },
+            quantity: item.quantity
+          })),
+          total: order.total,
+          status: order.status,
+          date: new Date(order.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+          shippingAddress: order.shippingAddress,
+          customerName: order.customerName,
+          customerPhone: order.customerPhone,
+          paymentMethod: order.paymentMethod,
+          trackingNumber: order.trackingId || `BUY${Date.now().toString().slice(-10)}`
+        }));
+        setBuybackOrders(formattedOrders);
+      } catch (error) {
+        console.error('Error loading buyback orders:', error);
+      }
+    };
+
+    loadBuybackOrders();
+    
+    // Set up polling to refresh buyback orders every 10 seconds
+    const interval = setInterval(loadBuybackOrders, 10000);
+    return () => clearInterval(interval);
+  }, [user?.id, user?.role]);
 
   // Load seller's books from database
   useEffect(() => {
@@ -1697,54 +1747,68 @@ export function SellerDashboard() {
     setCheckoutStep('address');
   };
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     const total = buybackCart.reduce((sum, item) => sum + (item.book.sellingPrice || 0) * item.quantity, 0);
     
-    const orderData = {
-      id: `BBO-${Date.now()}${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
-      userId: user?.id || 'guest',
-      type: 'buyback',
-      items: buybackCart.map(item => ({
-        bookId: item.book.id,
-        quantity: item.quantity,
-        book: {
-          ...item.book,
-          title: item.book.bookTitle,
-          price: item.book.sellingPrice || 0,
-        }
-      })),
-      total,
-      status: 'pickup-scheduled',
-      date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
-      shippingAddress: deliveryAddress.address,
-      customerName: deliveryAddress.name,
-      customerPhone: deliveryAddress.phone,
-      paymentMethod: paymentMethod.toUpperCase(),
-      trackingNumber: `BUY${Date.now().toString().slice(-10)}`,
-    };
+    try {
+      const orderData = {
+        items: buybackCart.map(item => ({
+          bookId: item.book.id,
+          quantity: item.quantity
+        })),
+        shippingAddress: deliveryAddress.address,
+        customerName: deliveryAddress.name,
+        customerPhone: deliveryAddress.phone,
+        paymentMethod: paymentMethod.toUpperCase()
+      };
 
-    if (onPlaceBuybackOrder) {
-      onPlaceBuybackOrder(orderData);
+      const order = await apiService.purchaseBuybackBooks(orderData);
+      
+      // Format the order for display
+      const formattedOrder = {
+        id: order._id,
+        userId: order.userId,
+        items: order.items.map((item: any) => ({
+          book: {
+            id: item.bookId._id,
+            title: item.bookId.bookTitle || item.bookId.title,
+            author: item.bookId.author,
+            price: item.price,
+            image: item.bookId.image,
+            condition: item.bookId.condition
+          },
+          quantity: item.quantity
+        })),
+        total: order.total,
+        status: order.status,
+        date: new Date(order.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+        shippingAddress: order.shippingAddress,
+        customerName: order.customerName,
+        customerPhone: order.customerPhone,
+        paymentMethod: order.paymentMethod,
+        trackingNumber: order.trackingId || `BUY${Date.now().toString().slice(-10)}`
+      };
+
+      // Add to buyback orders list
+      setBuybackOrders([formattedOrder, ...buybackOrders]);
+
+      setCheckoutStep('confirmation');
+      setBuybackCart([]);
+      
+      toast.success('Order placed successfully!');
+      
+      // Close modal after 3 seconds
+      setTimeout(() => {
+        setShowCheckoutModal(false);
+        setCheckoutStep('cart');
+        setActiveTab('buyback-orders');
+      }, 3000);
+    } catch (error: any) {
+      console.error('Error placing buyback order:', error);
+      toast.error('Failed to place order', {
+        description: error.message || 'Please try again'
+      });
     }
-
-    // Update stock
-    buybackCart.forEach(item => {
-      if (onPurchaseBuybackBook) {
-        onPurchaseBuybackBook(item.book.id, item.quantity);
-      }
-    });
-
-    setCheckoutStep('confirmation');
-    setBuybackCart([]);
-    
-    toast.success('Order placed successfully!');
-    
-    // Close modal after 3 seconds
-    setTimeout(() => {
-      setShowCheckoutModal(false);
-      setCheckoutStep('cart');
-      setActiveTab('buyback-orders');
-    }, 3000);
   };
 
   const buybackCartTotal = buybackCart.reduce((sum, item) => sum + (item.book.sellingPrice || 0) * item.quantity, 0);
@@ -2756,7 +2820,7 @@ export function SellerDashboard() {
 
         {/* Orders Tab */}
         {activeTab === 'orders' ? (
-          <div className="bg-[#3D2817] rounded-lg p-6 border-2 border-[#8B6F47] shadow-xl">
+          <div className="bg-[#3D2817] rounded-lg p-3 sm:p-6 border-2 border-[#8B6F47] shadow-xl max-w-full overflow-hidden">
             {/* Mobile Back Button */}
             <button
               onClick={() => setActiveTab('overview')}
@@ -2795,26 +2859,26 @@ export function SellerDashboard() {
             ) : (
               <>
                 {/* Order Statistics */}
-                <div className="flex gap-3 mb-6 overflow-x-auto pb-2">
-                  <div className="p-3 bg-[#2C1810] rounded-lg border border-orange-700 min-w-[140px] flex-shrink-0">
+                <div className="grid grid-cols-2 sm:flex sm:gap-3 gap-2 mb-4 sm:mb-6 sm:overflow-x-auto sm:pb-2">
+                  <div className="p-2 sm:p-3 bg-[#2C1810] rounded-lg border border-orange-700 sm:min-w-[140px] flex-shrink-0">
                     <p className="text-xs text-[#D4C5AA]">New Orders</p>
-                    <p className="text-2xl font-bold text-orange-400">{sellerOrders.filter(o => o.status === 'new' || o.status === 'pending').length}</p>
+                    <p className="text-xl sm:text-2xl font-bold text-orange-400">{sellerOrders.filter(o => o.status === 'new' || o.status === 'pending').length}</p>
                   </div>
-                  <div className="p-3 bg-[#2C1810] rounded-lg border border-blue-700 min-w-[140px] flex-shrink-0">
+                  <div className="p-2 sm:p-3 bg-[#2C1810] rounded-lg border border-blue-700 sm:min-w-[140px] flex-shrink-0">
                     <p className="text-xs text-[#D4C5AA]">Accepted</p>
-                    <p className="text-2xl font-bold text-blue-400">{sellerOrders.filter(o => o.status === 'accepted').length}</p>
+                    <p className="text-xl sm:text-2xl font-bold text-blue-400">{sellerOrders.filter(o => o.status === 'accepted').length}</p>
                   </div>
-                  <div className="p-3 bg-[#2C1810] rounded-lg border border-purple-700 min-w-[140px] flex-shrink-0">
+                  <div className="p-2 sm:p-3 bg-[#2C1810] rounded-lg border border-purple-700 sm:min-w-[140px] flex-shrink-0">
                     <p className="text-xs text-[#D4C5AA]">Packed</p>
-                    <p className="text-2xl font-bold text-purple-400">{sellerOrders.filter(o => o.status === 'packed').length}</p>
+                    <p className="text-xl sm:text-2xl font-bold text-purple-400">{sellerOrders.filter(o => o.status === 'packed').length}</p>
                   </div>
-                  <div className="p-3 bg-[#2C1810] rounded-lg border border-purple-700 min-w-[140px] flex-shrink-0">
+                  <div className="p-2 sm:p-3 bg-[#2C1810] rounded-lg border border-purple-700 sm:min-w-[140px] flex-shrink-0">
                     <p className="text-xs text-[#D4C5AA]">Shipped</p>
-                    <p className="text-2xl font-bold text-purple-400">{sellerOrders.filter(o => o.status === 'shipped').length}</p>
+                    <p className="text-xl sm:text-2xl font-bold text-purple-400">{sellerOrders.filter(o => o.status === 'shipped').length}</p>
                   </div>
-                  <div className="p-3 bg-[#2C1810] rounded-lg border border-emerald-700 min-w-[140px] flex-shrink-0">
+                  <div className="p-2 sm:p-3 bg-[#2C1810] rounded-lg border border-emerald-700 sm:min-w-[140px] flex-shrink-0 col-span-2 sm:col-span-1">
                     <p className="text-xs text-[#D4C5AA]">Delivered</p>
-                    <p className="text-2xl font-bold text-emerald-400">{sellerOrders.filter(o => o.status === 'delivered').length}</p>
+                    <p className="text-xl sm:text-2xl font-bold text-emerald-400">{sellerOrders.filter(o => o.status === 'delivered').length}</p>
                   </div>
                 </div>
 
@@ -2825,7 +2889,7 @@ export function SellerDashboard() {
                     const currentStatus = order.status;
                     
                     return (
-                      <div key={order.id} className={`bg-[#2C1810] rounded-lg p-4 border-2 ${
+                      <div key={order.id} className={`bg-[#2C1810] rounded-lg p-3 sm:p-4 border-2 max-w-full overflow-hidden ${
                         currentStatus === 'new' || currentStatus === 'pending' ? 'border-yellow-700' :
                         currentStatus === 'accepted' ? 'border-blue-700' :
                         currentStatus === 'packed' ? 'border-purple-700' :
@@ -2835,7 +2899,7 @@ export function SellerDashboard() {
                         currentStatus === 'rejected' ? 'border-red-700' :
                         'border-[#8B6F47]'
                       }`}>
-                        <div className="flex items-start justify-between mb-3">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-3 gap-2">
                           <div>
                             <p className="font-bold text-[#F5E6D3] text-lg">Order #{order.id}</p>
                             <p className="text-sm text-[#D4C5AA]">{order.date} • {order.customerName}</p>
@@ -3264,19 +3328,18 @@ export function SellerDashboard() {
 
       {/* Returns Tab */}
       {activeTab === 'returns' && (
-        <div className="bg-[#3D2817] rounded-lg p-6 border-2 border-[#8B6F47] shadow-xl">
+        <div className="bg-[#3D2817] rounded-lg p-3 sm:p-6 border-2 border-[#8B6F47] shadow-xl max-w-full overflow-hidden">
           {/* Mobile Back Button */}
           <button
             onClick={() => setActiveTab('overview')}
-            className="lg:hidden flex items-center gap-2 mb-4 text-[#D4AF37] hover:text-[#F5E6D3] transition-colors"
+            className="lg:hidden flex items-center gap-2 mb-3 text-[#D4AF37] hover:text-[#F5E6D3] transition-colors"
           >
-            <ArrowLeft className="size-5" />
-            {/* <span className="font-semibold">Back to Overview</span> */}
+            <ArrowLeft className="size-4" />
           </button>
-          <h2 className="text-2xl font-bold text-[#D4AF37] mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>
+          <h2 className="text-lg sm:text-2xl font-bold text-[#D4AF37] mb-3 sm:mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>
             Return Requests ({returnRequests.filter(r => r.status === 'approved-by-admin').length} Pending)
           </h2>
-          <p className="text-[#D4C5AA] mb-4 text-sm">
+          <p className="text-[#D4C5AA] mb-3 sm:mb-4 text-xs sm:text-sm">
             Process return requests that have been approved by admin
           </p>
 
@@ -3286,71 +3349,123 @@ export function SellerDashboard() {
               <p className="text-[#D4C5AA]">Loading return requests...</p>
             </div>
           ) : returnRequests.filter(r => r.status === 'approved-by-admin').length > 0 ? (
-            <div className="space-y-4">
-              {returnRequests.filter(r => r.status === 'approved-by-admin').map((returnRequest) => (
-                <div key={returnRequest.id} className="p-4 bg-[#2C1810] rounded-lg border border-orange-700/50">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <p className="font-bold text-[#F5E6D3]">{returnRequest.id}</p>
-                      <p className="text-sm text-[#D4C5AA]">
-                        {returnRequest.requestDate} • {returnRequest.customerName}
-                      </p>
-                      <p className="text-xs text-orange-400 mt-1">
-                        <RotateCcw className="inline size-3 mr-1" />
-                        Order: {returnRequest.orderId}
-                      </p>
-                      <p className="text-sm text-[#D4C5AA] mt-2">
-                        <span className="font-semibold text-[#F5E6D3]">Reason:</span> {returnRequest.reason}
-                      </p>
-                      {returnRequest.description && (
-                        <p className="text-sm text-[#D4C5AA] mt-1">
-                          <span className="font-semibold text-[#F5E6D3]">Details:</span> {returnRequest.description}
-                        </p>
-                      )}
-                      {returnRequest.adminNotes && (
-                        <p className="text-sm text-blue-300 mt-2 bg-blue-900/20 p-2 rounded border border-blue-700/50">
-                          <span className="font-semibold">Admin Notes:</span> {returnRequest.adminNotes}
-                        </p>
-                      )}
-                    </div>
-                    <span className="px-3 py-1 rounded text-sm font-bold bg-blue-900/30 text-blue-400 border border-blue-700/50">
-                      Approved by Admin
-                    </span>
-                  </div>
-                  
-                  <div className="border-t border-[#8B6F47] pt-3 mt-3">
-                    <p className="text-sm text-[#D4C5AA] mb-2">
-                      <span className="font-semibold text-[#F5E6D3]">Items to return:</span> {returnRequest.items.length} item{returnRequest.items.length !== 1 ? 's' : ''}
-                    </p>
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {returnRequest.items.map((item, idx) => (
-                        <div key={idx} className="bg-[#3D2817] px-3 py-1.5 rounded text-xs text-[#D4C5AA] border border-[#8B6F47]">
-                          {item.book.title} (x{item.quantity}) - ₹{item.book.price * item.quantity}
+            <div className="space-y-3 sm:space-y-4">
+              {returnRequests.filter(r => r.status === 'approved-by-admin').map((returnRequest) => {
+                const isExpanded = expandedReturns.includes(returnRequest.id);
+                
+                return (
+                  <div key={returnRequest.id} className="bg-[#2C1810] rounded-lg border-2 border-orange-700/50 max-w-full overflow-hidden hover:border-orange-600 transition-all">
+                    {/* Clickable Header */}
+                    <div 
+                      className="p-3 sm:p-4 cursor-pointer hover:bg-[#3D2817] transition-all"
+                      onClick={() => {
+                        setExpandedReturns(prev => 
+                          prev.includes(returnRequest.id)
+                            ? prev.filter(id => id !== returnRequest.id)
+                            : [...prev, returnRequest.id]
+                        );
+                      }}
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-[#F5E6D3] text-sm sm:text-base truncate">{returnRequest.id}</p>
+                          <p className="text-xs sm:text-sm text-[#D4C5AA]">
+                            {returnRequest.requestDate} • {returnRequest.customerName}
+                          </p>
+                          <p className="text-xs text-orange-400 mt-1">
+                            <RotateCcw className="inline size-3 mr-1" />
+                            Order: {returnRequest.orderId}
+                          </p>
                         </div>
-                      ))}
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm text-[#D4C5AA]">
-                        <span className="font-semibold text-[#F5E6D3]">Total Refund Amount:</span> 
-                        <span className="text-[#D4AF37] text-lg font-bold ml-2">
-                          ₹{returnRequest.items.reduce((sum, item) => sum + (item.book.price * item.quantity), 0)}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 sm:px-3 py-1 rounded text-xs sm:text-sm font-bold bg-blue-900/30 text-blue-400 border border-blue-700/50 whitespace-nowrap">
+                            Refund Issued
+                          </span>
+                          <ChevronDown className={`size-5 text-[#D4AF37] transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                        </div>
                       </div>
-                      <button
-                        className="px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold rounded text-sm transition-all"
-                        onClick={() => {
-                          const refundAmount = returnRequest.items.reduce((sum, item) => sum + (item.book.price * item.quantity), 0);
-                          onSellerProcessReturn(returnRequest.id, refundAmount, 'Return processed and refund issued');
-                        }}
-                      >
-                        <CheckCircle2 className="inline size-4 mr-1" />
-                        Process Return & Issue Refund
-                      </button>
                     </div>
+
+                    {/* Expanded Details */}
+                    {isExpanded && (
+                      <div className="border-t border-[#8B6F47] p-3 sm:p-4 bg-[#3D2817]">
+                        {/* Return Reason & Description */}
+                        <div className="mb-4 p-3 bg-[#2C1810] rounded-lg border border-orange-700/30">
+                          <h4 className="text-xs sm:text-sm font-bold text-orange-400 mb-2 flex items-center gap-2">
+                            <AlertTriangle className="size-4" />
+                            Return Issue Details
+                          </h4>
+                          <div className="space-y-2">
+                            <div>
+                              <p className="text-xs text-[#A08968]">Reason:</p>
+                              <p className="text-xs sm:text-sm text-[#F5E6D3] font-semibold">{returnRequest.reason}</p>
+                            </div>
+                            {returnRequest.description && (
+                              <div>
+                                <p className="text-xs text-[#A08968]">Customer Description:</p>
+                                <p className="text-xs sm:text-sm text-[#D4C5AA]">{returnRequest.description}</p>
+                              </div>
+                            )}
+                            {returnRequest.adminNotes && (
+                              <div className="mt-2 p-2 bg-blue-900/20 rounded border border-blue-700/50">
+                                <p className="text-xs text-blue-300">
+                                  <span className="font-semibold">Admin Notes:</span> {returnRequest.adminNotes}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Return Items */}
+                        <div className="mb-4">
+                          <h4 className="text-xs sm:text-sm font-bold text-[#D4AF37] mb-2">Books to Return ({returnRequest.items.length}):</h4>
+                          <div className="space-y-2">
+                            {returnRequest.items.map((item, idx) => (
+                              <div key={idx} className="flex items-center gap-3 bg-[#2C1810] p-2 sm:p-3 rounded border border-[#8B6F47]">
+                                <div className="w-10 h-14 sm:w-12 sm:h-16 bg-[#8B6F47]/20 rounded flex items-center justify-center flex-shrink-0">
+                                  <BookOpen className="size-5 sm:size-6 text-[#8B6F47]" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs sm:text-sm font-semibold text-[#F5E6D3] truncate">{item.book.title}</p>
+                                  <p className="text-xs text-[#D4C5AA]">by {item.book.author}</p>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <span className="text-xs text-[#A08968]">Qty: {item.quantity}</span>
+                                    <span className="text-xs text-[#A08968]">•</span>
+                                    <span className="text-xs text-[#D4AF37] font-bold">₹{item.book.price * item.quantity}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Refund Summary */}
+                        <div className="bg-[#2C1810] rounded-lg p-3 border-2 border-[#D4AF37] mb-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs sm:text-sm text-[#D4C5AA] font-semibold">Total Refund Amount:</span>
+                            <span className="text-base sm:text-xl text-[#D4AF37] font-bold">
+                              ₹{returnRequest.items.reduce((sum, item) => sum + (item.book.price * item.quantity), 0)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Action Button */}
+                        <button
+                          className="w-full px-3 sm:px-4 py-2 sm:py-2.5 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold rounded text-xs sm:text-sm transition-all flex items-center justify-center gap-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const refundAmount = returnRequest.items.reduce((sum, item) => sum + (item.book.price * item.quantity), 0);
+                            onSellerProcessReturn(returnRequest.id, refundAmount, 'Return processed and refund issued');
+                          }}
+                        >
+                          <CheckCircle2 className="size-4" />
+                          Process Return & Issue Refund
+                        </button>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="p-8 bg-[#2C1810] rounded-lg border border-[#8B6F47] text-center">
@@ -3367,30 +3482,98 @@ export function SellerDashboard() {
                 Return History
               </h3>
               <div className="space-y-3">
-                {returnRequests.filter(r => r.status !== 'approved-by-admin' && r.status !== 'pending-admin').map((returnRequest) => (
-                  <div key={returnRequest.id} className="p-4 bg-[#2C1810] rounded-lg border border-[#8B6F47]">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <p className="font-bold text-[#F5E6D3]">{returnRequest.id}</p>
-                        <p className="text-sm text-[#D4C5AA]">{returnRequest.requestDate} • {returnRequest.customerName}</p>
-                        <p className="text-xs text-[#D4C5AA] mt-1">Order: {returnRequest.orderId}</p>
+                {returnRequests.filter(r => r.status !== 'approved-by-admin' && r.status !== 'pending-admin').map((returnRequest) => {
+                  const isExpanded = expandedReturns.includes(returnRequest.id);
+                  
+                  return (
+                    <div key={returnRequest.id} className="bg-[#2C1810] rounded-lg border-2 border-[#8B6F47] max-w-full overflow-hidden hover:border-[#D4AF37] transition-all">
+                      {/* Clickable Header */}
+                      <div 
+                        className="p-3 sm:p-4 cursor-pointer hover:bg-[#3D2817] transition-all"
+                        onClick={() => {
+                          setExpandedReturns(prev => 
+                            prev.includes(returnRequest.id)
+                              ? prev.filter(id => id !== returnRequest.id)
+                              : [...prev, returnRequest.id]
+                          );
+                        }}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <p className="font-bold text-[#F5E6D3]">{returnRequest.id}</p>
+                            <p className="text-sm text-[#D4C5AA]">{returnRequest.requestDate} • {returnRequest.customerName}</p>
+                            <p className="text-xs text-[#D4C5AA] mt-1">Order: {returnRequest.orderId}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`px-3 py-1 rounded text-sm font-bold ${
+                              returnRequest.status === 'refund-issued' ? 'bg-purple-900/30 text-purple-400 border border-purple-700/50' :
+                              returnRequest.status === 'completed' ? 'bg-emerald-900/30 text-emerald-400 border border-emerald-700/50' :
+                              returnRequest.status === 'rejected-by-admin' ? 'bg-red-900/30 text-red-400 border border-red-700/50' :
+                              'bg-yellow-900/30 text-yellow-400 border border-yellow-700/50'
+                            }`}>
+                              {returnRequest.status.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                            </span>
+                            <ChevronDown className={`size-5 text-[#D4AF37] transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                          </div>
+                        </div>
                       </div>
-                      <span className={`px-3 py-1 rounded text-sm font-bold ${
-                        returnRequest.status === 'refund-issued' ? 'bg-purple-900/30 text-purple-400 border border-purple-700/50' :
-                        returnRequest.status === 'completed' ? 'bg-emerald-900/30 text-emerald-400 border border-emerald-700/50' :
-                        returnRequest.status === 'rejected-by-admin' ? 'bg-red-900/30 text-red-400 border border-red-700/50' :
-                        'bg-yellow-900/30 text-yellow-400 border border-yellow-700/50'
-                      }`}>
-                        {returnRequest.status.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-                      </span>
+
+                      {/* Expanded Details */}
+                      {isExpanded && (
+                        <div className="border-t border-[#8B6F47] p-3 sm:p-4 bg-[#3D2817]">
+                          {/* Return Reason & Description */}
+                          <div className="mb-4 p-3 bg-[#2C1810] rounded-lg border border-[#8B6F47]">
+                            <h4 className="text-xs sm:text-sm font-bold text-[#D4AF37] mb-2">Return Details</h4>
+                            <div className="space-y-2">
+                              <div>
+                                <p className="text-xs text-[#A08968]">Reason:</p>
+                                <p className="text-xs sm:text-sm text-[#F5E6D3] font-semibold">{returnRequest.reason}</p>
+                              </div>
+                              {returnRequest.description && (
+                                <div>
+                                  <p className="text-xs text-[#A08968]">Description:</p>
+                                  <p className="text-xs sm:text-sm text-[#D4C5AA]">{returnRequest.description}</p>
+                                </div>
+                              )}
+                              {returnRequest.adminNotes && (
+                                <div className="mt-2 p-2 bg-blue-900/20 rounded border border-blue-700/50">
+                                  <p className="text-xs text-blue-300">
+                                    <span className="font-semibold">Admin Notes:</span> {returnRequest.adminNotes}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Return Items */}
+                          {returnRequest.items && returnRequest.items.length > 0 && (
+                            <div>
+                              <h4 className="text-xs sm:text-sm font-bold text-[#D4AF37] mb-2">Returned Books ({returnRequest.items.length}):</h4>
+                              <div className="space-y-2">
+                                {returnRequest.items.map((item, idx) => (
+                                  <div key={idx} className="flex items-center gap-3 bg-[#2C1810] p-2 sm:p-3 rounded border border-[#8B6F47]">
+                                    <div className="w-10 h-14 sm:w-12 sm:h-16 bg-[#8B6F47]/20 rounded flex items-center justify-center flex-shrink-0">
+                                      <BookOpen className="size-5 sm:size-6 text-[#8B6F47]" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-xs sm:text-sm font-semibold text-[#F5E6D3] truncate">{item.book.title}</p>
+                                      <p className="text-xs text-[#D4C5AA]">by {item.book.author}</p>
+                                      <div className="flex items-center gap-2 mt-1">
+                                        <span className="text-xs text-[#A08968]">Qty: {item.quantity}</span>
+                                        <span className="text-xs text-[#A08968]">•</span>
+                                        <span className="text-xs text-[#D4AF37] font-bold">₹{item.book.price * item.quantity}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    {returnRequest.adminNotes && (
-                      <p className="text-sm text-[#D4C5AA] mt-2">
-                        <span className="font-semibold text-[#F5E6D3]">Admin Notes:</span> {returnRequest.adminNotes}
-                      </p>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -3419,7 +3602,7 @@ export function SellerDashboard() {
             </div>
             <div className="bg-emerald-900/30 border-2 border-emerald-700 rounded-lg px-4 py-2">
               <p className="text-emerald-400 font-bold text-lg">
-                {loadingBuybackBooks ? '...' : approvedBuybackBooks.filter(book => book.status === 'approved' && (book.stock || 0) > 0).length} Available
+                {loadingBuybackBooks ? '...' : approvedBuybackBooks.length} Available
               </p>
             </div>
           </div>
@@ -3429,7 +3612,7 @@ export function SellerDashboard() {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#D4AF37] mx-auto mb-4"></div>
               <p className="text-[#D4C5AA]">Loading buyback books...</p>
             </div>
-          ) : approvedBuybackBooks.filter(book => book.status === 'approved' && (book.stock || 0) > 0).length === 0 ? (
+          ) : approvedBuybackBooks.length === 0 ? (
             <div className="text-center py-16">
               <RefreshCw className="size-16 text-[#8B6F47] mx-auto mb-4" />
               <h3 className="text-xl font-bold text-[#D4AF37] mb-2">No Buyback Books Available</h3>
@@ -3437,9 +3620,7 @@ export function SellerDashboard() {
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {approvedBuybackBooks
-                .filter(book => book.status === 'approved' && (book.stock || 0) > 0)
-                .map((book) => (
+              {approvedBuybackBooks.map((book) => (
                 <div key={book.id} className="bg-[#2C1810] rounded-lg border border-[#8B6F47] overflow-hidden hover:border-[#D4AF37] transition-all">
                   {/* Book Image */}
                   <div className="relative h-48 bg-[#8B6F47]/20">
@@ -3638,12 +3819,14 @@ export function SellerDashboard() {
                 {buybackOrders.map((order) => {
                   const getStatusInfo = (status: string) => {
                     switch (status) {
-                      case 'pickup-scheduled':
+                      case 'pending':
                         return { label: 'Pickup Scheduled', color: 'blue', icon: Clock };
-                      case 'picked-up':
+                      case 'processing':
                         return { label: 'Picked Up from Customer', color: 'indigo', icon: PackageCheck };
-                      case 'in-transit':
+                      case 'packed':
                         return { label: 'In Transit to You', color: 'purple', icon: Truck };
+                      case 'shipped':
+                        return { label: 'Out for Delivery', color: 'orange', icon: Truck };
                       case 'out-for-delivery':
                         return { label: 'Out for Delivery', color: 'orange', icon: Truck };
                       case 'delivered':
@@ -3734,24 +3917,35 @@ export function SellerDashboard() {
                         <div className="mt-4 space-y-4">
                           <div className="bg-[#3D2817] p-4 rounded border border-[#8B6F47]">
                             <p className="text-[#A08968] text-xs font-semibold mb-3">Order Tracking:</p>
-                            <div className="space-y-2">
-                              {['pickup-scheduled', 'picked-up', 'in-transit', 'out-for-delivery', 'delivered'].map((step, idx) => {
-                                const stepInfo = getStatusInfo(step);
-                                const StepIcon = stepInfo.icon;
-                                const isCompleted = ['pickup-scheduled', 'picked-up', 'in-transit', 'out-for-delivery', 'delivered'].indexOf(order.status) >= idx;
-                                const isCurrent = order.status === step;
-                                
-                                return (
-                                  <div key={step} className="flex items-center gap-3">
-                                    <div className={`p-2 rounded-full ${isCurrent ? 'bg-[#D4AF37]' : isCompleted ? 'bg-[#8B6F47]/40' : 'bg-[#2C1810]'}`}>
-                                      <StepIcon className={`size-4 ${isCurrent ? 'text-[#2C1810]' : isCompleted ? 'text-[#D4AF37]' : 'text-[#8B6F47]'}`} />
+                            <div className="relative">
+                              {/* Vertical connecting line */}
+                              <div className="absolute left-4 top-4 bottom-4 w-0.5 bg-gradient-to-b from-emerald-600 via-[#D4AF37] to-[#8B6F47]"></div>
+                              
+                              <div className="space-y-4">
+                                {['pending', 'processing', 'packed', 'shipped', 'delivered'].map((step, idx) => {
+                                  const stepInfo = getStatusInfo(step);
+                                  const StepIcon = stepInfo.icon;
+                                  const isCompleted = ['pending', 'processing', 'packed', 'shipped', 'delivered'].indexOf(order.status) >= idx;
+                                  const isCurrent = order.status === step;
+                                  
+                                  return (
+                                    <div key={step} className="flex items-center gap-3 relative">
+                                      <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 border-white shadow-lg z-10 ${
+                                        isCurrent ? 'bg-[#D4AF37]' : isCompleted ? 'bg-emerald-600' : 'bg-[#8B6F47]'
+                                      }`}>
+                                        <StepIcon className={`size-4 ${
+                                          isCurrent ? 'text-[#2C1810]' : isCompleted ? 'text-white' : 'text-[#D4C5AA]'
+                                        }`} />
+                                      </div>
+                                      <p className={`text-sm ${
+                                        isCurrent ? 'text-[#D4AF37] font-bold' : isCompleted ? 'text-[#F5E6D3]' : 'text-[#8B6F47]'
+                                      }`}>
+                                        {stepInfo.label}
+                                      </p>
                                     </div>
-                                    <p className={`text-sm ${isCurrent ? 'text-[#D4AF37] font-bold' : isCompleted ? 'text-[#D4C5AA]' : 'text-[#8B6F47]'}`}>
-                                      {stepInfo.label}
-                                    </p>
-                                  </div>
-                                );
-                              })}
+                                  );
+                                })}
+                              </div>
                             </div>
                           </div>
 

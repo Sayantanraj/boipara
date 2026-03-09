@@ -226,6 +226,16 @@ export function Navbar({ user, wishlist = [], notifications = [], onLogout, onMa
                           {user.role === 'seller' ? 'Seller Dashboard' : user.role === 'admin' ? 'Admin Dashboard' : 'My Orders'}
                         </span>
                       </Link>
+                      {user.role === 'seller' && (
+                        <Link
+                          to="/orders"
+                          className="flex items-center gap-2 px-4 py-2 hover:bg-[#4D3827] transition-colors text-sm text-[#F5E6D3]"
+                          onClick={() => setShowUserMenu(false)}
+                        >
+                          <ShoppingCart className="size-4 text-[#D4AF37]" />
+                          <span>My Orders</span>
+                        </Link>
+                      )}
                       <Link
                         to="/help"
                         className="flex items-center gap-2 px-4 py-2 hover:bg-[#4D3827] transition-colors text-sm text-[#F5E6D3] sm:hidden"

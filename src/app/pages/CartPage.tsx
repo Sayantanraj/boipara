@@ -162,7 +162,7 @@ export function CartPage() {
                             {/* Condition Badge */}
                             <div className="mb-3">
                               {item.book?.condition === 'new' && (
-                                <span className="bg-emerald-700 text-white text-xs px-2 py-1 rounded font-bold">NEW</span>
+                                <span className="text-white text-xs px-2 py-1 rounded font-bold" style={{ backgroundColor: '#9FC131' }}>NEW</span>
                               )}
                               {item.book?.condition === 'like-new' && (
                                 <span className="bg-blue-700 text-white text-xs px-2 py-1 rounded font-bold">LIKE NEW</span>
@@ -232,7 +232,7 @@ export function CartPage() {
                   </div>
                   <div className="flex justify-between text-[#D4C5AA]">
                     <span>Shipping</span>
-                    <span className="font-semibold text-emerald-400">FREE</span>
+                    <span className="font-semibold" style={{ color: '#9FC131' }}>FREE</span>
                   </div>
                   <div className="border-t-2 border-[#8B6F47] pt-3">
                     <div className="flex justify-between font-bold text-lg">
@@ -244,8 +244,8 @@ export function CartPage() {
 
                 {/* Savings */}
                 {validCart.some(item => item.book?.mrp > item.book?.price) && (
-                  <div className="bg-emerald-900/30 border-2 border-emerald-700/50 rounded-lg p-3 mb-6">
-                    <p className="text-emerald-400 font-semibold text-sm">
+                  <div className="rounded-lg p-3 mb-6" style={{ backgroundColor: 'rgba(159, 193, 49, 0.15)', border: '2px solid rgba(159, 193, 49, 0.5)' }}>
+                    <p className="font-semibold text-sm" style={{ color: '#9FC131' }}>
                       🎉 You save ₹{validCart.reduce((sum, item) => sum + ((item.book?.mrp || 0) - (item.book?.price || 0)) * item.quantity, 0)}
                     </p>
                   </div>

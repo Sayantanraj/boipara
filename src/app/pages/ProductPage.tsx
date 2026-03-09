@@ -209,7 +209,7 @@ function CustomerView({ book, user, wishlist, onLogout, addToCart, onToggleWishl
 
   const getConditionBadge = () => {
     const badges = {
-      'new': { text: 'NEW', color: 'bg-emerald-700 text-white', desc: 'Brand new, sealed' },
+      'new': { text: 'NEW', color: 'text-white', bgColor: '#9FC131', desc: 'Brand new, sealed' },
       'like-new': { text: 'LIKE NEW', color: 'bg-blue-700 text-white', desc: 'Excellent condition, minimal wear' },
       'used': { text: 'USED', color: 'bg-orange-700 text-white', desc: 'Good condition, may have marks' },
     };
@@ -266,7 +266,7 @@ function CustomerView({ book, user, wishlist, onLogout, addToCart, onToggleWishl
                 
                 {/* Enhanced Badges */}
                 <div className="absolute top-6 left-6 space-y-2">
-                  <div className={`${conditionBadge.color} text-sm px-3 py-2 rounded-lg font-bold shadow-xl border-2 border-white/20 backdrop-blur-sm`}>
+                  <div className="text-sm px-3 py-2 rounded-lg font-bold shadow-xl border-2 border-white/20 backdrop-blur-sm" style={book.condition === 'new' ? { backgroundColor: '#9FC131', color: 'white' } : { backgroundColor: book.condition === 'like-new' ? '#1d4ed8' : '#c2410c', color: 'white' }}>
                     {conditionBadge.text}
                   </div>
                   {book.bestseller && (
@@ -308,8 +308,8 @@ function CustomerView({ book, user, wishlist, onLogout, addToCart, onToggleWishl
               {/* Condition Details Card */}
               <div className="mt-4 bg-gradient-to-r from-[#2C1810] to-[#1A0F08] rounded-lg p-4 border-2 border-[#8B6F47]/50">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className={`${conditionBadge.color} p-2 rounded-lg`}>
-                    <Award className="size-5" />
+                  <div className="p-2 rounded-lg" style={book.condition === 'new' ? { backgroundColor: '#9FC131' } : { backgroundColor: book.condition === 'like-new' ? '#1d4ed8' : '#c2410c' }}>
+                    <Award className="size-5 text-white" />
                   </div>
                   <div>
                     <h3 className="font-bold text-[#D4AF37] text-sm">Book Condition</h3>
@@ -350,11 +350,11 @@ function CustomerView({ book, user, wishlist, onLogout, addToCart, onToggleWishl
                       <span className="text-xs text-[#D4C5AA] ml-1">({book.reviewCount.toLocaleString()})</span>
                     )}
                   </div>
-                  <div className="text-xs px-3 py-2 font-bold text-[#F5E6D3]">
+                  <div className="text-xs px-3 py-2 font-bold rounded-lg" style={book.condition === 'new' ? { backgroundColor: '#9FC131', color: 'white' } : { backgroundColor: book.condition === 'like-new' ? '#1d4ed8' : '#c2410c', color: 'white' }}>
                     {conditionBadge.text}
                   </div>
                   {book.stock > 0 ? (
-                    <div className="flex items-center gap-1.5 text-emerald-400 font-bold text-xs">
+                    <div className="flex items-center gap-1.5 font-bold text-xs" style={{ color: '#9FC131' }}>
                       <CheckCircle className="size-3.5" />
                       <span>{book.stock < 5 ? `Only ${book.stock} left!` : 'In Stock'}</span>
                     </div>
@@ -381,7 +381,7 @@ function CustomerView({ book, user, wishlist, onLogout, addToCart, onToggleWishl
                     )}
                   </div>
                   <p className="text-sm text-[#D4C5AA] flex items-center gap-2">
-                    <CheckCircle className="size-4 text-emerald-400" />
+                    <CheckCircle className="size-4" style={{ color: '#9FC131' }} />
                     Inclusive of all taxes • Free delivery
                   </p>
                 </div>
@@ -445,7 +445,7 @@ function CustomerView({ book, user, wishlist, onLogout, addToCart, onToggleWishl
                   </button>
                 </form>
                 {deliveryChecked && (
-                  <div className="mt-2 flex items-center gap-2 text-emerald-400 text-xs">
+                  <div className="mt-2 flex items-center gap-2 text-xs" style={{ color: '#9FC131' }}>
                     <CheckCircle className="size-3" />
                     <span>Delivery available in {book.deliveryDays} days to {pincode}</span>
                   </div>
@@ -455,11 +455,11 @@ function CustomerView({ book, user, wishlist, onLogout, addToCart, onToggleWishl
               {/* Quick Info */}
               <div className="flex items-center gap-3 text-xs text-[#D4C5AA] flex-wrap">
                 <div className="flex items-center gap-1.5">
-                  <Clock className="size-3 text-emerald-400" />
+                  <Clock className="size-3" style={{ color: '#9FC131' }} />
                   <span>{book.deliveryDays} days delivery</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Truck className="size-3 text-emerald-400" />
+                  <Truck className="size-3" style={{ color: '#9FC131' }} />
                   <span>Free shipping</span>
                 </div>
               </div>
@@ -488,7 +488,7 @@ function CustomerView({ book, user, wishlist, onLogout, addToCart, onToggleWishl
                         Legacy Seller
                       </div>
                     )}
-                    <span className="text-xs text-emerald-400 font-semibold">
+                    <span className="text-xs font-semibold" style={{ color: '#9FC131' }}>
                       {book.seller?.yearsInBusiness || 35}+ years in business
                     </span>
                   </div>

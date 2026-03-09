@@ -457,7 +457,7 @@ export function CheckoutPage() {
                 </div>
                 <div className="flex justify-between text-[#D4C5AA]">
                   <span>Shipping</span>
-                  <span className="font-semibold text-emerald-400">FREE</span>
+                  <span className="font-semibold" style={{ color: '#9FC131' }}>FREE</span>
                 </div>
                 <div className="border-t-2 border-[#8B6F47] pt-3">
                   <div className="flex justify-between font-bold text-lg">
@@ -469,8 +469,8 @@ export function CheckoutPage() {
 
               {/* Savings */}
               {deduplicatedItems.some(item => item.book.mrp > item.book.price) && (
-                <div className="bg-emerald-900/30 border-2 border-emerald-700/50 rounded-lg p-3 mb-4 sm:mb-6">
-                  <p className="text-emerald-400 font-semibold text-sm">
+                <div className="rounded-lg p-3 mb-4 sm:mb-6" style={{ backgroundColor: 'rgba(159, 193, 49, 0.15)', border: '2px solid rgba(159, 193, 49, 0.5)' }}>
+                  <p className="font-semibold text-sm" style={{ color: '#9FC131' }}>
                     🎉 You save ₹{deduplicatedItems.reduce((sum, item) => sum + (item.book.mrp - item.book.price) * item.quantity, 0)}
                   </p>
                 </div>
