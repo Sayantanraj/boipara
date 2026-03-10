@@ -520,14 +520,16 @@ export function Navbar({ user, wishlist = [], notifications = [], onLogout, onMa
                   <Star className="size-5" />
                   <span className="font-semibold">Best Sellers</span>
                 </Link>
-                <Link
-                  to="/buyback"
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-[#3D2817] text-emerald-400 hover:text-emerald-300 transition-colors border-b border-[#8B6F47]"
-                  onClick={() => setShowCategoryMenu(false)}
-                >
-                  <Coins className="size-5" />
-                  <span className="font-semibold">Sell Books</span>
-                </Link>
+                {user?.role !== 'seller' && (
+                  <Link
+                    to="/buyback"
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-[#3D2817] text-emerald-400 hover:text-emerald-300 transition-colors border-b border-[#8B6F47]"
+                    onClick={() => setShowCategoryMenu(false)}
+                  >
+                    <Coins className="size-5" />
+                    <span className="font-semibold">Sell Books</span>
+                  </Link>
+                )}
                 {user && (
                   <>
                     <Link
