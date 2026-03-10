@@ -2552,25 +2552,24 @@ export function SellerDashboard() {
 
         {/* Bulk Upload Tab */}
         {activeTab === 'bulk-upload' ? (
-          <div className="bg-[#3D2817] rounded-lg p-6 border-2 border-[#8B6F47] shadow-xl">
+          <div className="bg-[#3D2817] rounded-lg p-3 sm:p-6 border-2 border-[#8B6F47] shadow-xl max-w-full overflow-hidden">
             {/* Mobile Back Button */}
             <button
               onClick={() => setActiveTab('overview')}
               className="lg:hidden flex items-center gap-2 mb-4 text-[#D4AF37] hover:text-[#F5E6D3] transition-colors"
             >
               <ArrowLeft className="size-5" />
-              {/* <span className="font-semibold">Back to Overview</span> */}
             </button>
-            <h2 className="text-2xl font-bold text-[#D4AF37] mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <h2 className="text-xl sm:text-2xl font-bold text-[#D4AF37] mb-4 sm:mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>
               Bulk Upload Books
             </h2>
             
-            <div className="mb-6 p-4 bg-[#2C1810] border-2 border-[#D4AF37]/50 rounded-lg">
-              <h3 className="font-bold text-[#D4AF37] mb-2 flex items-center gap-2">
-                <FileSpreadsheet className="size-5" />
+            <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-[#2C1810] border-2 border-[#D4AF37]/50 rounded-lg">
+              <h3 className="font-bold text-[#D4AF37] mb-2 flex items-center gap-2 text-sm sm:text-base">
+                <FileSpreadsheet className="size-4 sm:size-5" />
                 Upload Instructions
               </h3>
-              <ul className="text-sm text-[#D4C5AA] space-y-1 ml-6 list-disc">
+              <ul className="text-xs sm:text-sm text-[#D4C5AA] space-y-1 ml-4 sm:ml-6 list-disc">
                 <li>Download the sample CSV/Excel template</li>
                 <li>Fill in book details (ISBN, Title, Author, Price, etc.)</li>
                 <li>Upload the completed file below</li>
@@ -2579,35 +2578,71 @@ export function SellerDashboard() {
               </ul>
             </div>
 
-            <form onSubmit={handleBulkUpload} className="space-y-6">
+            <form onSubmit={handleBulkUpload} className="space-y-4 sm:space-y-6">
               <div>
                 <label className="block text-sm font-semibold text-[#D4AF37] mb-2">Download Template</label>
-                <div className="flex gap-4">
+                <div className="flex gap-2 sm:gap-4">
                   <button
                     type="button"
                     onClick={downloadCSVTemplate}
-                    className="flex items-center gap-2 px-6 py-3 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold rounded-md transition-all"
+                    className="flex-1 flex items-center justify-center gap-2 px-3 sm:px-6 py-2.5 sm:py-3 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold rounded-md transition-all text-sm sm:text-base"
                   >
-                    <FileSpreadsheet className="size-5" />
-                    Download CSV Template
+                    <svg 
+                      width="16" 
+                      height="16" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="2" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                      className="sm:w-5 sm:h-5"
+                    >
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="16" y1="13" x2="8" y2="13"></line>
+                      <line x1="16" y1="17" x2="8" y2="17"></line>
+                      <line x1="10" y1="9" x2="8" y2="9"></line>
+                      <circle cx="16" cy="16" r="6" fill="white" stroke="currentColor"></circle>
+                      <path d="M16 13v6m-3-3l3 3 3-3"></path>
+                    </svg>
+                    CSV
                   </button>
                   <button
                     type="button"
                     onClick={downloadExcelTemplate}
-                    className="flex items-center gap-2 px-6 py-3 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold rounded-md transition-all"
+                    className="flex-1 flex items-center justify-center gap-2 px-3 sm:px-6 py-2.5 sm:py-3 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold rounded-md transition-all text-sm sm:text-base"
                   >
-                    <FileSpreadsheet className="size-5" />
-                    Download Excel Template
+                    <svg 
+                      width="16" 
+                      height="16" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="2" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                      className="sm:w-5 sm:h-5"
+                    >
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="16" y1="13" x2="8" y2="13"></line>
+                      <line x1="16" y1="17" x2="8" y2="17"></line>
+                      <line x1="10" y1="9" x2="8" y2="9"></line>
+                      <circle cx="16" cy="16" r="6" fill="white" stroke="currentColor"></circle>
+                      <path d="M16 13v6m-3-3l3 3 3-3"></path>
+                    </svg>
+                    Excel
                   </button>
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-semibold text-[#D4AF37] mb-2">Upload CSV/Excel File</label>
-                <div className="border-2 border-dashed border-[#8B6F47] rounded-lg p-8 text-center bg-[#2C1810] hover:border-[#D4AF37] transition-all">
-                  <FileSpreadsheet className="size-12 text-[#8B6F47] mx-auto mb-4" />
-                  <p className="text-[#F5E6D3] font-semibold mb-2">Drop your CSV/Excel file here</p>
-                  <p className="text-sm text-[#D4C5AA] mb-4">or click to browse</p>
+                <div className="border-2 border-dashed border-[#8B6F47] rounded-lg p-4 sm:p-8 text-center bg-[#2C1810] hover:border-[#D4AF37] transition-all">
+                  <FileSpreadsheet className="size-8 sm:size-12 text-[#8B6F47] mx-auto mb-3 sm:mb-4" />
+                  <p className="text-[#F5E6D3] font-semibold mb-1 sm:mb-2 text-sm sm:text-base">Drop your CSV/Excel file here</p>
+                  <p className="text-xs sm:text-sm text-[#D4C5AA] mb-3 sm:mb-4">or click to browse</p>
                   <input
                     type="file"
                     accept=".csv,.xlsx,.xls"
@@ -2617,12 +2652,12 @@ export function SellerDashboard() {
                   />
                   <label
                     htmlFor="csv-upload"
-                    className="inline-block px-6 py-2 bg-[#8B6F47] hover:bg-[#D4AF37] text-[#F5E6D3] font-semibold rounded-md cursor-pointer transition-all"
+                    className="inline-block px-4 sm:px-6 py-2 bg-[#8B6F47] hover:bg-[#D4AF37] text-[#F5E6D3] font-semibold rounded-md cursor-pointer transition-all text-sm sm:text-base"
                   >
                     Choose File
                   </label>
                   {uploadedFile && (
-                    <p className="text-sm text-emerald-400 mt-3">✓ {uploadedFile.name}</p>
+                    <p className="text-xs sm:text-sm text-emerald-400 mt-2 sm:mt-3 truncate">✓ {uploadedFile.name}</p>
                   )}
                 </div>
               </div>
@@ -2630,16 +2665,16 @@ export function SellerDashboard() {
               {/* Bulk Image Upload Section */}
               <div>
                 <label className="block text-sm font-semibold text-[#D4AF37] mb-2">Upload Book Cover Images (Optional)</label>
-                <div className="mb-3 p-3 bg-[#2C1810] border border-[#8B6F47]/50 rounded-lg">
-                  <p className="text-xs text-[#D4C5AA] flex items-center gap-2">
-                    <BookOpen className="size-4 text-[#D4AF37]" />
-                    <strong className="text-[#D4AF37]">Important:</strong> Name your image files with the ISBN number (e.g., 978-81-12345-67-8.jpg)
+                <div className="mb-3 p-2 sm:p-3 bg-[#2C1810] border border-[#8B6F47]/50 rounded-lg">
+                  <p className="text-xs text-[#D4C5AA] flex items-start gap-2">
+                    <BookOpen className="size-3 sm:size-4 text-[#D4AF37] flex-shrink-0 mt-0.5" />
+                    <span><strong className="text-[#D4AF37]">Important:</strong> Name your image files with the ISBN number (e.g., 978-81-12345-67-8.jpg)</span>
                   </p>
                 </div>
-                <div className="border-2 border-dashed border-[#8B6F47] rounded-lg p-8 text-center bg-[#2C1810] hover:border-[#D4AF37] transition-all">
-                  <BookOpen className="size-12 text-[#8B6F47] mx-auto mb-4" />
-                  <p className="text-[#F5E6D3] font-semibold mb-2">Upload multiple book cover images</p>
-                  <p className="text-sm text-[#D4C5AA] mb-4">JPG, PNG or WEBP (Multiple files allowed)</p>
+                <div className="border-2 border-dashed border-[#8B6F47] rounded-lg p-4 sm:p-8 text-center bg-[#2C1810] hover:border-[#D4AF37] transition-all">
+                  <BookOpen className="size-8 sm:size-12 text-[#8B6F47] mx-auto mb-3 sm:mb-4" />
+                  <p className="text-[#F5E6D3] font-semibold mb-1 sm:mb-2 text-sm sm:text-base">Upload multiple book cover images</p>
+                  <p className="text-xs sm:text-sm text-[#D4C5AA] mb-3 sm:mb-4">JPG, PNG or WEBP (Multiple files allowed)</p>
                   <input
                     type="file"
                     accept="image/*"
@@ -2677,12 +2712,12 @@ export function SellerDashboard() {
                   />
                   <label
                     htmlFor="bulk-images-upload"
-                    className="inline-block px-6 py-2 bg-[#8B6F47] hover:bg-[#D4AF37] text-[#F5E6D3] font-semibold rounded-md cursor-pointer transition-all"
+                    className="inline-block px-4 sm:px-6 py-2 bg-[#8B6F47] hover:bg-[#D4AF37] text-[#F5E6D3] font-semibold rounded-md cursor-pointer transition-all text-sm sm:text-base"
                   >
                     Choose Images
                   </label>
                   {Object.keys(bulkImages).length > 0 && (
-                    <p className="text-sm text-emerald-400 mt-3">
+                    <p className="text-xs sm:text-sm text-emerald-400 mt-2 sm:mt-3">
                       ✓ {Object.keys(bulkImages).length} image(s) loaded
                     </p>
                   )}
@@ -2691,24 +2726,25 @@ export function SellerDashboard() {
 
               <button
                 type="submit"
-                className="w-full bg-gradient-to-r from-[#8B6F47] to-[#6B5537] hover:from-[#D4AF37] hover:to-[#B8941F] text-[#F5E6D3] font-bold py-3 rounded-md transition-all shadow-lg flex items-center justify-center gap-2 border border-[#D4AF37]/30"
+                className="w-full bg-gradient-to-r from-[#8B6F47] to-[#6B5537] hover:from-[#D4AF37] hover:to-[#B8941F] text-[#F5E6D3] font-bold py-2.5 sm:py-3 rounded-md transition-all shadow-lg flex items-center justify-center gap-2 border border-[#D4AF37]/30 text-sm sm:text-base"
               >
-                <Upload className="size-5" />
-                Upload and Process Books
+                <Upload className="size-4 sm:size-5" />
+                <span className="hidden sm:inline">Upload and Process Books</span>
+                <span className="sm:hidden">Upload Books</span>
               </button>
 
               {/* Upload status */}
               {uploadStatus !== 'idle' && (
-                <div className="mt-4">
+                <div className="mt-3 sm:mt-4">
                   {uploadStatus === 'processing' && (
-                    <div className="flex items-center gap-2 text-sm text-[#D4C5AA]">
-                      <Clock className="size-4" />
+                    <div className="flex items-center gap-2 text-xs sm:text-sm text-[#D4C5AA]">
+                      <Clock className="size-3 sm:size-4" />
                       Processing...
                     </div>
                   )}
                   {uploadStatus === 'success' && (
-                    <div className="flex items-center gap-2 text-sm text-emerald-400">
-                      <CheckCircle2 className="size-4" />
+                    <div className="flex items-center gap-2 text-xs sm:text-sm text-emerald-400">
+                      <CheckCircle2 className="size-3 sm:size-4" />
                       {uploadResults.success} books added successfully
                       {uploadResults.failed > 0 && (
                         <span className="text-red-400">, {uploadResults.failed} failed</span>
@@ -2716,8 +2752,8 @@ export function SellerDashboard() {
                     </div>
                   )}
                   {uploadStatus === 'error' && (
-                    <div className="flex items-center gap-2 text-sm text-red-400">
-                      <AlertCircle className="size-4" />
+                    <div className="flex items-center gap-2 text-xs sm:text-sm text-red-400">
+                      <AlertCircle className="size-3 sm:size-4" />
                       Upload failed
                       {uploadResults.errors.map((error, index) => (
                         <div key={index} className="text-xs text-red-400 mt-1">
