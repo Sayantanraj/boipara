@@ -3582,26 +3582,25 @@ export function SellerDashboard() {
 
       {/* Buyback Books Tab */}
       {activeTab === 'buyback-books' ? (
-        <div className="bg-[#3D2817] rounded-lg p-6 border-2 border-[#8B6F47] shadow-xl">
+        <div className="bg-[#3D2817] rounded-lg p-3 sm:p-6 border-2 border-[#8B6F47] shadow-xl max-w-full overflow-hidden">
           {/* Mobile Back Button */}
           <button
             onClick={() => setActiveTab('overview')}
             className="lg:hidden flex items-center gap-2 mb-4 text-[#D4AF37] hover:text-[#F5E6D3] transition-colors"
           >
             <ArrowLeft className="size-5" />
-            {/* <span className="font-semibold">Back to Overview</span> */}
           </button>
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-3">
             <div>
-              <h2 className="text-2xl font-bold text-[#D4AF37]" style={{ fontFamily: "'Playfair Display', serif" }}>
+              <h2 className="text-xl sm:text-2xl font-bold text-[#D4AF37]" style={{ fontFamily: "'Playfair Display', serif" }}>
                 Approved Buyback Books
               </h2>
-              <p className="text-[#D4C5AA] text-sm mt-1">
+              <p className="text-[#D4C5AA] text-xs sm:text-sm mt-1">
                 Purchase quality books from our buyback inventory
               </p>
             </div>
-            <div className="bg-emerald-900/30 border-2 border-emerald-700 rounded-lg px-4 py-2">
-              <p className="text-emerald-400 font-bold text-lg">
+            <div className="bg-emerald-900/30 border-2 border-emerald-700 rounded-lg px-3 sm:px-4 py-2">
+              <p className="text-emerald-400 font-bold text-base sm:text-lg">
                 {loadingBuybackBooks ? '...' : approvedBuybackBooks.length} Available
               </p>
             </div>
@@ -3613,17 +3612,17 @@ export function SellerDashboard() {
               <p className="text-[#D4C5AA]">Loading buyback books...</p>
             </div>
           ) : approvedBuybackBooks.length === 0 ? (
-            <div className="text-center py-16">
-              <RefreshCw className="size-16 text-[#8B6F47] mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-[#D4AF37] mb-2">No Buyback Books Available</h3>
-              <p className="text-[#D4C5AA]">Check back later for new buyback books from the platform</p>
+            <div className="text-center py-12 sm:py-16">
+              <RefreshCw className="size-12 sm:size-16 text-[#8B6F47] mx-auto mb-4" />
+              <h3 className="text-lg sm:text-xl font-bold text-[#D4AF37] mb-2">No Buyback Books Available</h3>
+              <p className="text-[#D4C5AA] text-sm sm:text-base">Check back later for new buyback books from the platform</p>
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
               {approvedBuybackBooks.map((book) => (
                 <div key={book.id} className="bg-[#2C1810] rounded-lg border border-[#8B6F47] overflow-hidden hover:border-[#D4AF37] transition-all">
                   {/* Book Image */}
-                  <div className="relative h-48 bg-[#8B6F47]/20">
+                  <div className="relative h-40 sm:h-48 bg-[#8B6F47]/20">
                     <img 
                       src={book.image} 
                       alt={book.bookTitle} 
@@ -3646,43 +3645,31 @@ export function SellerDashboard() {
                   </div>
 
                   {/* Book Details */}
-                  <div className="p-4">
-                    <h3 className="font-bold text-[#F5E6D3] mb-1 line-clamp-2" title={book.bookTitle}>
+                  <div className="p-3 sm:p-4">
+                    <h3 className="font-bold text-[#F5E6D3] mb-1 line-clamp-2 text-sm sm:text-base" title={book.bookTitle}>
                       {book.bookTitle}
                     </h3>
-                    <p className="text-sm text-[#D4C5AA] mb-2">by {book.author}</p>
+                    <p className="text-xs sm:text-sm text-[#D4C5AA] mb-2 truncate">by {book.author}</p>
                     
                     <div className="space-y-1 mb-3">
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-[#A08968]">ISBN:</span>
-                        <span className="text-[#D4C5AA] font-mono">{book.isbn}</span>
+                        <span className="text-[#D4C5AA] font-mono truncate ml-2">{book.isbn}</span>
                       </div>
                       {book.category && (
                         <div className="flex items-center justify-between text-xs">
                           <span className="text-[#A08968]">Category:</span>
-                          <span className="text-[#D4AF37]">{book.category}</span>
-                        </div>
-                      )}
-                      {book.publisher && (
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-[#A08968]">Publisher:</span>
-                          <span className="text-[#D4C5AA]">{book.publisher}</span>
-                        </div>
-                      )}
-                      {book.language && (
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-[#A08968]">Language:</span>
-                          <span className="text-[#D4C5AA]">{book.language}</span>
+                          <span className="text-[#D4AF37] truncate ml-2">{book.category}</span>
                         </div>
                       )}
                     </div>
 
                     {/* Pricing */}
-                    <div className="bg-[#3D2817] rounded-lg p-3 mb-3 border border-[#8B6F47]">
+                    <div className="bg-[#3D2817] rounded-lg p-2 sm:p-3 mb-3 border border-[#8B6F47]">
                       <div className="flex justify-between items-center">
                         <span className="text-[#A08968] text-xs">Your Cost:</span>
                         <div className="text-right">
-                          <p className="text-[#D4AF37] font-bold text-lg">₹{book.sellingPrice}</p>
+                          <p className="text-[#D4AF37] font-bold text-base sm:text-lg">₹{book.sellingPrice}</p>
                           <p className="text-emerald-400 text-xs">
                             {Math.round(((1 - (book.sellingPrice || 0) / 1000) * 100))}% off MRP
                           </p>
@@ -3692,24 +3679,24 @@ export function SellerDashboard() {
 
                     {/* Quantity Selector */}
                     <div className="flex items-center justify-between mb-3 bg-[#2C1810] rounded-lg border-2 border-[#8B6F47] p-2">
-                      <span className="text-[#D4C5AA] text-sm font-semibold">Quantity:</span>
-                      <div className="flex items-center gap-3">
+                      <span className="text-[#D4C5AA] text-xs sm:text-sm font-semibold">Qty:</span>
+                      <div className="flex items-center gap-2 sm:gap-3">
                         <button
                           onClick={() => handleDecrementBuybackQuantity(book.id)}
                           disabled={getBuybackBookQuantity(book.id) <= 1}
-                          className="bg-[#8B6F47] hover:bg-[#A08968] p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="bg-[#8B6F47] hover:bg-[#A08968] p-1.5 sm:p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <Minus className="size-4 text-white" />
+                          <Minus className="size-3 sm:size-4 text-white" />
                         </button>
-                        <span className="font-bold text-[#F5E6D3] min-w-[2.5rem] text-center text-lg">
+                        <span className="font-bold text-[#F5E6D3] min-w-[2rem] text-center text-sm sm:text-lg">
                           {getBuybackBookQuantity(book.id)}
                         </span>
                         <button
                           onClick={() => handleIncrementBuybackQuantity(book.id, book.stock || 0)}
                           disabled={getBuybackBookQuantity(book.id) >= (book.stock || 0)}
-                          className="bg-[#8B6F47] hover:bg-[#A08968] p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="bg-[#8B6F47] hover:bg-[#A08968] p-1.5 sm:p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <Plus className="size-4 text-white" />
+                          <Plus className="size-3 sm:size-4 text-white" />
                         </button>
                       </div>
                     </div>
@@ -3718,18 +3705,20 @@ export function SellerDashboard() {
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         onClick={() => handleAddToBuybackCart(book)}
-                        className="bg-gradient-to-r from-[#8B6F47] to-[#A08968] hover:from-[#A08968] hover:to-[#8B6F47] text-white font-bold py-2.5 rounded-md transition-all flex items-center justify-center gap-2 shadow-lg"
+                        className="bg-gradient-to-r from-[#8B6F47] to-[#A08968] hover:from-[#A08968] hover:to-[#8B6F47] text-white font-semibold py-2 sm:py-2.5 rounded-md transition-all flex items-center justify-center gap-1 sm:gap-2 shadow-lg text-xs sm:text-sm"
                       >
-                        <ShoppingCart className="size-4" />
-                        Add to Cart
+                        <ShoppingCart className="size-3 sm:size-4" />
+                        <span className="hidden sm:inline">Add to Cart</span>
+                        <span className="sm:hidden">Cart</span>
                       </button>
 
                       <button
                         onClick={() => handleBuyNowBuybackBook(book)}
-                        className="bg-gradient-to-r from-[#D4AF37] to-[#F4C430] hover:from-[#F4C430] hover:to-[#D4AF37] text-[#2C1810] font-bold py-2.5 rounded-md transition-all flex items-center justify-center gap-2 shadow-lg"
+                        className="bg-gradient-to-r from-[#D4AF37] to-[#F4C430] hover:from-[#F4C430] hover:to-[#D4AF37] text-[#2C1810] font-semibold py-2 sm:py-2.5 rounded-md transition-all flex items-center justify-center gap-1 sm:gap-2 shadow-lg text-xs sm:text-sm"
                       >
-                        <Package className="size-4" />
-                        Buy Now
+                        <Package className="size-3 sm:size-4" />
+                        <span className="hidden sm:inline">Buy Now</span>
+                        <span className="sm:hidden">Buy</span>
                       </button>
                     </div>
                   </div>
@@ -3740,15 +3729,15 @@ export function SellerDashboard() {
 
           {/* Cart Summary and Checkout Button - Always show if cart has items */}
           {buybackCart.length > 0 && (
-            <div className="mt-6 bg-gradient-to-r from-[#8B6F47]/40 to-[#A08968]/40 border-2 border-[#D4AF37] rounded-lg p-5 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="bg-[#8B6F47] p-3 rounded-full">
-                  <ShoppingCart className="size-6 text-white" />
+            <div className="mt-4 sm:mt-6 bg-gradient-to-r from-[#8B6F47]/40 to-[#A08968]/40 border-2 border-[#D4AF37] rounded-lg p-3 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="bg-[#8B6F47] p-2 sm:p-3 rounded-full flex-shrink-0">
+                  <ShoppingCart className="size-4 sm:size-6 text-white" />
                 </div>
-                <div>
-                  <p className="text-[#D4AF37] font-bold text-lg">Cart Ready ({buybackCart.length} items)</p>
-                  <p className="text-[#D4C5AA] text-sm">{buybackCartItemsCount} books • ₹{buybackCartTotal.toLocaleString()}</p>
-                  <div className="text-xs text-[#A08968] mt-1">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[#D4AF37] font-bold text-sm sm:text-lg">Cart Ready ({buybackCart.length} items)</p>
+                  <p className="text-[#D4C5AA] text-xs sm:text-sm">{buybackCartItemsCount} books • ₹{buybackCartTotal.toLocaleString()}</p>
+                  <div className="text-xs text-[#A08968] mt-1 line-clamp-2">
                     {buybackCart.map((item, idx) => (
                       <span key={item.book.id}>
                         {item.book.bookTitle} (x{item.quantity}){idx < buybackCart.length - 1 ? ', ' : ''}
@@ -3759,23 +3748,22 @@ export function SellerDashboard() {
               </div>
               <button
                 onClick={handleProceedToCheckout}
-                className="bg-gradient-to-r from-[#8B6F47] to-[#A08968] hover:from-[#A08968] hover:to-[#8B6F47] text-white font-bold px-6 py-3 rounded-lg transition-all shadow-lg flex items-center gap-2"
+                className="bg-gradient-to-r from-[#8B6F47] to-[#A08968] hover:from-[#A08968] hover:to-[#8B6F47] text-white font-semibold px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg transition-all shadow-lg flex items-center justify-center gap-2 text-sm sm:text-base flex-shrink-0"
               >
-                <CheckCircle2 className="size-5" />
-                Proceed to Checkout
+                <CheckCircle2 className="size-4 sm:size-5" />
+                <span className="hidden sm:inline">Proceed to Checkout</span>
+                <span className="sm:hidden">Checkout</span>
               </button>
             </div>
           )}
 
-
-
           {/* Info Box */}
-          <div className="mt-6 bg-blue-900/30 border-2 border-blue-700 rounded-lg p-4">
-            <h3 className="text-blue-400 font-bold mb-2 flex items-center gap-2">
+          <div className="mt-4 sm:mt-6 bg-blue-900/30 border-2 border-blue-700 rounded-lg p-3 sm:p-4">
+            <h3 className="text-blue-400 font-bold mb-2 flex items-center gap-2 text-sm sm:text-base">
               <RefreshCw className="size-4" />
               About Buyback Books
             </h3>
-            <ul className="text-[#D4C5AA] text-sm space-y-1 list-disc list-inside">
+            <ul className="text-[#D4C5AA] text-xs sm:text-sm space-y-1 list-disc list-inside">
               <li>These books were bought back from customers by BOI PARA admin</li>
               <li>All books are quality-checked and condition-verified</li>
               <li>Purchase at wholesale prices and resell on your own or through the platform</li>
@@ -3788,34 +3776,33 @@ export function SellerDashboard() {
 
       {/* Buyback Orders Tab */}
       {activeTab === 'buyback-orders' ? (
-        <div className="space-y-6">
-          <div className="bg-[#3D2817] rounded-lg p-6 border-2 border-[#8B6F47] shadow-xl">
+        <div className="max-w-full overflow-hidden">
+          <div className="bg-[#3D2817] rounded-lg p-3 sm:p-6 border-2 border-[#8B6F47] shadow-xl">
             {/* Mobile Back Button */}
             <button
               onClick={() => setActiveTab('overview')}
               className="lg:hidden flex items-center gap-2 mb-4 text-[#D4AF37] hover:text-[#F5E6D3] transition-colors"
             >
               <ArrowLeft className="size-5" />
-              {/* <span className="font-semibold">Back to Overview</span> */}
             </button>
-            <h2 className="text-2xl font-bold text-[#D4AF37] mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <h2 className="text-xl sm:text-2xl font-bold text-[#D4AF37] mb-4 sm:mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>
               My Buyback Orders ({buybackOrders.length})
             </h2>
             
             {buybackOrders.length === 0 ? (
-              <div className="text-center py-16">
-                <PackageCheck className="size-16 text-[#8B6F47] mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-[#D4AF37] mb-2">No Buyback Orders Yet</h3>
-                <p className="text-[#D4C5AA] mb-4">Start ordering from our buyback inventory</p>
+              <div className="text-center py-12 sm:py-16">
+                <PackageCheck className="size-12 sm:size-16 text-[#8B6F47] mx-auto mb-4" />
+                <h3 className="text-lg sm:text-xl font-bold text-[#D4AF37] mb-2">No Buyback Orders Yet</h3>
+                <p className="text-[#D4C5AA] mb-4 text-sm sm:text-base">Start ordering from our buyback inventory</p>
                 <button
                   onClick={() => setActiveTab('buyback-books')}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-6 py-2 rounded-lg transition-all"
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 sm:px-6 py-2 rounded-lg transition-all text-sm sm:text-base"
                 >
                   Browse Buyback Books
                 </button>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {buybackOrders.map((order) => {
                   const getStatusInfo = (status: string) => {
                     switch (status) {
@@ -3842,58 +3829,62 @@ export function SellerDashboard() {
                   const StatusIcon = statusInfo.icon;
 
                   return (
-                    <div key={order.id} className="bg-[#2C1810] rounded-lg border-2 border-[#8B6F47] p-5">
+                    <div key={order.id} className="bg-[#2C1810] rounded-lg border-2 border-[#8B6F47] p-3 sm:p-5 max-w-full overflow-hidden">
                       {/* Order Header */}
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-[#D4AF37] font-bold text-lg">Order {order.id}</h3>
-                            <span className={`px-3 py-1 rounded-full text-xs font-bold bg-${statusInfo.color}-900/30 text-${statusInfo.color}-400 border border-${statusInfo.color}-700/50 flex items-center gap-1`}>
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 sm:mb-4 gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                            <h3 className="text-[#D4AF37] font-bold text-base sm:text-lg truncate">Order {order.id}</h3>
+                            <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-bold bg-${statusInfo.color}-900/30 text-${statusInfo.color}-400 border border-${statusInfo.color}-700/50 flex items-center gap-1 w-fit`}>
                               <StatusIcon className="size-3" />
-                              {statusInfo.label}
+                              <span className="hidden sm:inline">{statusInfo.label}</span>
+                              <span className="sm:hidden">{statusInfo.label.split(' ')[0]}</span>
                             </span>
                           </div>
-                          <p className="text-[#D4C5AA] text-sm">Placed on: {order.date}</p>
-                          <p className="text-[#D4C5AA] text-sm">Tracking: {order.trackingNumber}</p>
+                          <p className="text-[#D4C5AA] text-xs sm:text-sm">Placed: {order.date}</p>
+                          <p className="text-[#D4C5AA] text-xs sm:text-sm">Tracking: {order.trackingNumber}</p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-[#A08968] text-sm">Total Amount</p>
-                          <p className="text-[#D4AF37] font-bold text-2xl">₹{order.total.toLocaleString()}</p>
+                        <div className="text-left sm:text-right flex-shrink-0">
+                          <p className="text-[#A08968] text-xs sm:text-sm">Total Amount</p>
+                          <p className="text-[#D4AF37] font-bold text-lg sm:text-2xl">₹{order.total.toLocaleString()}</p>
                         </div>
                       </div>
 
-                      {/* Order Items */}
-                      <div className="mb-4 space-y-2">
-                        <p className="text-[#A08968] text-sm font-semibold mb-2">Items:</p>
-                        {order.items.map((item, idx) => (
-                          <div key={idx} className="flex items-center gap-3 bg-[#3D2817] p-3 rounded border border-[#8B6F47]">
-                            <img src={item.book.image} alt={item.book.title} className="w-12 h-16 object-cover rounded" />
-                            <div className="flex-1">
-                              <p className="text-[#F5E6D3] font-semibold text-sm">{item.book.title}</p>
-                              <p className="text-[#D4C5AA] text-xs">Qty: {item.quantity} × ₹{item.book.price}</p>
+                      {/* Order Items - Mobile Optimized */}
+                      <div className="mb-3 sm:mb-4">
+                        <p className="text-[#A08968] text-xs sm:text-sm font-semibold mb-2">Items ({order.items.length}):</p>
+                        <div className="space-y-2">
+                          {order.items.map((item, idx) => (
+                            <div key={idx} className="flex items-center gap-2 sm:gap-3 bg-[#3D2817] p-2 sm:p-3 rounded border border-[#8B6F47]">
+                              <img src={item.book.image} alt={item.book.title} className="w-8 h-10 sm:w-12 sm:h-16 object-cover rounded flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[#F5E6D3] font-semibold text-xs sm:text-sm truncate">{item.book.title}</p>
+                                <p className="text-[#D4C5AA] text-xs">Qty: {item.quantity} × ₹{item.book.price}</p>
+                              </div>
+                              <p className="text-[#D4AF37] font-bold text-xs sm:text-sm flex-shrink-0">₹{(item.book.price * item.quantity).toLocaleString()}</p>
                             </div>
-                            <p className="text-[#D4AF37] font-bold">₹{(item.book.price * item.quantity).toLocaleString()}</p>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
 
-                      {/* Delivery Address */}
-                      <div className="bg-[#3D2817] p-3 rounded border border-[#8B6F47] mb-4">
+                      {/* Delivery Address - Mobile Optimized */}
+                      <div className="bg-[#3D2817] p-2 sm:p-3 rounded border border-[#8B6F47] mb-3 sm:mb-4">
                         <p className="text-[#A08968] text-xs font-semibold mb-1">Delivery Address:</p>
-                        <p className="text-[#F5E6D3] text-sm">{order.customerName}</p>
-                        <p className="text-[#D4C5AA] text-sm">{order.shippingAddress}</p>
-                        <p className="text-[#D4C5AA] text-sm">{order.customerPhone}</p>
+                        <p className="text-[#F5E6D3] text-xs sm:text-sm font-medium">{order.customerName}</p>
+                        <p className="text-[#D4C5AA] text-xs sm:text-sm truncate">{order.shippingAddress}</p>
+                        <p className="text-[#D4C5AA] text-xs sm:text-sm">{order.customerPhone}</p>
                       </div>
 
-                      {/* Action Buttons - Side by Side */}
-                      <div className="flex gap-3">
+                      {/* Action Buttons - Mobile Responsive */}
+                      <div className="flex gap-2 sm:gap-3">
                         {/* Download Invoice Button */}
                         <button
                           onClick={() => handleDownloadBuybackInvoice(order)}
-                          className="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold py-2.5 rounded transition-all flex items-center justify-center gap-2"
+                          className="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold py-2 sm:py-2.5 rounded transition-all flex items-center justify-center gap-2 text-xs sm:text-sm"
                         >
-                          <Download className="size-4" />
-                          Download Invoice
+                          <Download className="size-3 sm:size-4" />
+                          <span className="hidden sm:inline">Download Invoice</span>
+                          <span className="sm:hidden">Invoice</span>
                         </button>
 
                         {/* Track Order Button */}
@@ -3905,23 +3896,24 @@ export function SellerDashboard() {
                                 : [...prev, order.id]
                             );
                           }}
-                          className="flex-1 bg-[#8B6F47] hover:bg-[#D4AF37] text-[#F5E6D3] font-semibold py-2.5 rounded transition-all flex items-center justify-center gap-2"
+                          className="flex-1 bg-[#8B6F47] hover:bg-[#D4AF37] text-[#F5E6D3] font-semibold py-2 sm:py-2.5 rounded transition-all flex items-center justify-center gap-2 text-xs sm:text-sm"
                         >
-                          <Truck className="size-4" />
-                          {expandedOrders.includes(order.id) ? 'Hide Tracking' : 'Track Order'}
+                          <Truck className="size-3 sm:size-4" />
+                          <span className="hidden sm:inline">{expandedOrders.includes(order.id) ? 'Hide Tracking' : 'Track Order'}</span>
+                          <span className="sm:hidden">{expandedOrders.includes(order.id) ? 'Hide' : 'Track'}</span>
                         </button>
                       </div>
 
-                      {/* Tracking Steps - Collapsible */}
+                      {/* Tracking Steps - Mobile Optimized */}
                       {expandedOrders.includes(order.id) && (
-                        <div className="mt-4 space-y-4">
-                          <div className="bg-[#3D2817] p-4 rounded border border-[#8B6F47]">
+                        <div className="mt-3 sm:mt-4">
+                          <div className="bg-[#3D2817] p-3 sm:p-4 rounded border border-[#8B6F47]">
                             <p className="text-[#A08968] text-xs font-semibold mb-3">Order Tracking:</p>
                             <div className="relative">
                               {/* Vertical connecting line */}
-                              <div className="absolute left-4 top-4 bottom-4 w-0.5 bg-gradient-to-b from-emerald-600 via-[#D4AF37] to-[#8B6F47]"></div>
+                              <div className="absolute left-3 sm:left-4 top-4 bottom-4 w-0.5 bg-gradient-to-b from-emerald-600 via-[#D4AF37] to-[#8B6F47]"></div>
                               
-                              <div className="space-y-4">
+                              <div className="space-y-3 sm:space-y-4">
                                 {['pending', 'processing', 'packed', 'shipped', 'delivered'].map((step, idx) => {
                                   const stepInfo = getStatusInfo(step);
                                   const StepIcon = stepInfo.icon;
@@ -3929,18 +3921,19 @@ export function SellerDashboard() {
                                   const isCurrent = order.status === step;
                                   
                                   return (
-                                    <div key={step} className="flex items-center gap-3 relative">
-                                      <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 border-white shadow-lg z-10 ${
+                                    <div key={step} className="flex items-center gap-2 sm:gap-3 relative">
+                                      <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center border-2 border-white shadow-lg z-10 ${
                                         isCurrent ? 'bg-[#D4AF37]' : isCompleted ? 'bg-emerald-600' : 'bg-[#8B6F47]'
                                       }`}>
-                                        <StepIcon className={`size-4 ${
+                                        <StepIcon className={`size-3 sm:size-4 ${
                                           isCurrent ? 'text-[#2C1810]' : isCompleted ? 'text-white' : 'text-[#D4C5AA]'
                                         }`} />
                                       </div>
-                                      <p className={`text-sm ${
+                                      <p className={`text-xs sm:text-sm ${
                                         isCurrent ? 'text-[#D4AF37] font-bold' : isCompleted ? 'text-[#F5E6D3]' : 'text-[#8B6F47]'
                                       }`}>
-                                        {stepInfo.label}
+                                        <span className="hidden sm:inline">{stepInfo.label}</span>
+                                        <span className="sm:hidden">{stepInfo.label.split(' ').slice(0, 2).join(' ')}</span>
                                       </p>
                                     </div>
                                   );
@@ -3949,7 +3942,7 @@ export function SellerDashboard() {
                             </div>
                           </div>
 
-                          {/* Action Buttons inside tracking */}
+                          {/* Cancel Button - Mobile Optimized */}
                           {order.status !== 'delivered' && order.status !== 'cancelled' && (
                             <button
                               onClick={() => {
@@ -3960,9 +3953,9 @@ export function SellerDashboard() {
                                   }
                                 }
                               }}
-                              className="w-full bg-red-700 hover:bg-red-600 text-white font-semibold py-2 rounded transition-all flex items-center justify-center gap-2"
+                              className="w-full mt-3 bg-red-700 hover:bg-red-600 text-white font-semibold py-2 rounded transition-all flex items-center justify-center gap-2 text-xs sm:text-sm"
                             >
-                              <Ban className="size-4" />
+                              <Ban className="size-3 sm:size-4" />
                               Cancel Order
                             </button>
                           )}
