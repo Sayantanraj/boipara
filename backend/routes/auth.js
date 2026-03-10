@@ -38,13 +38,23 @@ router.post('/register', async (req, res) => {
     });
 
     await user.save();
-    await emailService.sendOTPEmail(email, otp, name);
+    
+    // Try to send email with detailed error handling
+    try {
+      await emailService.sendOTPEmail(email, otp, name);
+      console.log(`OTP email sent successfully to ${email}`);
+    } catch (emailError) {
+      console.error('Email sending failed:', emailError);
+      // Don't fail registration if email fails - user can resend OTP
+      console.log('Registration completed but email failed - user can resend OTP');
+    }
 
     res.status(201).json({
       message: 'Registration successful. Please check your email for OTP verification.',
       userId: user._id
     });
   } catch (error) {
+    console.error('Registration error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -111,10 +121,17 @@ router.post('/resend-otp', async (req, res) => {
     user.emailOTP = otp;
     user.otpExpires = otpExpires;
     await user.save();
-    await emailService.sendOTPEmail(user.email, otp, user.name);
-
-    res.json({ message: 'OTP sent successfully' });
+    
+    try {
+      await emailService.sendOTPEmail(user.email, otp, user.name);
+      console.log(`Resend OTP email sent successfully to ${user.email}`);
+      res.json({ message: 'OTP sent successfully' });
+    } catch (emailError) {
+      console.error('Resend OTP email failed:', emailError);
+      res.status(500).json({ error: 'Failed to send OTP email. Please try again.' });
+    }
   } catch (error) {
+    console.error('Resend OTP error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -453,6 +470,31 @@ router.post('/reset-password', async (req, res) => {
   } catch (error) {
     console.error('Reset password error:', error);
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Test email connection (for debugging)
+router.post('/test-email', async (req, res) => {
+  try {
+    const testOTP = '123456';
+    const testEmail = process.env.EMAIL_USER; // Send to self for testing
+    
+    console.log('Testing email with config:', {
+      host: process.env.EMAIL_HOST,
+      port: process.env.EMAIL_PORT,
+      user: process.env.EMAIL_USER,
+      hasPassword: !!process.env.EMAIL_PASS
+    });
+    
+    await emailService.sendOTPEmail(testEmail, testOTP, 'Test User');
+    res.json({ message: 'Test email sent successfully' });
+  } catch (error) {
+    console.error('Test email failed:', error);
+    res.status(500).json({ 
+      error: 'Test email failed', 
+      details: error.message,
+      code: error.code
+    });
   }
 });
 
