@@ -470,11 +470,6 @@ export function SellerDashboard() {
 
     const doc = new jsPDF();
     
-    // Helper function to format numbers without using toLocaleString
-    const formatPrice = (num: number): string => {
-      return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    };
-    
     // Header - Platform Logo/Branding
     doc.setFillColor(61, 40, 23); // #3D2817
     doc.rect(0, 0, 210, 40, 'F');
@@ -564,11 +559,15 @@ export function SellerDashboard() {
       doc.setDrawColor(139, 111, 71);
       doc.line(15, yPos, 195, yPos);
       
-      const title = doc.splitTextToSize(item.book.title, 100);
-      doc.text(title[0] + (title.length > 1 ? '...' : ''), 20, yPos + 7);
-      doc.text(String(item.quantity), 130, yPos + 7);
-      doc.text('₹' + String(item.book.price), 150, yPos + 7);
-      doc.text('₹' + String(item.book.price * item.quantity), 175, yPos + 7);
+      const bookTitle = doc.splitTextToSize(item.book.title, 100);
+      const itemPrice = item.book.price;
+      const itemQuantity = item.quantity;
+      const itemSubtotal = itemPrice * itemQuantity;
+      
+      doc.text(bookTitle[0] + (bookTitle.length > 1 ? '...' : ''), 20, yPos + 7);
+      doc.text(itemQuantity.toString(), 130, yPos + 7);
+      doc.text('Rs.' + itemPrice.toString(), 150, yPos + 7);
+      doc.text('Rs.' + itemSubtotal.toString(), 175, yPos + 7);
       
       yPos += 10;
     });
@@ -585,7 +584,8 @@ export function SellerDashboard() {
     doc.text('TOTAL AMOUNT:', 130, yPos);
     doc.setTextColor(212, 175, 55);
     doc.setFontSize(14);
-    doc.text('₹' + formatPrice(order.total), 175, yPos);
+    const totalAmount = order.total;
+    doc.text('Rs.' + totalAmount.toString(), 175, yPos);
     
     // Footer
     doc.setTextColor(139, 111, 71);
@@ -2585,7 +2585,7 @@ export function SellerDashboard() {
                   <button
                     type="button"
                     onClick={downloadCSVTemplate}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 sm:px-6 py-2.5 sm:py-3 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold rounded-md transition-all text-sm sm:text-base"
+                    className="flex-1 flex items-center justify-center gap-2 px-3 sm:px-6 py-2.5 sm:py-3 bg-[#FFD230] hover:bg-[#E6BD2A] text-[#2C1810] font-semibold rounded-md transition-all text-sm sm:text-base"
                   >
                     <Download className="size-4 sm:size-5" />
                     CSV
@@ -2593,7 +2593,7 @@ export function SellerDashboard() {
                   <button
                     type="button"
                     onClick={downloadExcelTemplate}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 sm:px-6 py-2.5 sm:py-3 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold rounded-md transition-all text-sm sm:text-base"
+                    className="flex-1 flex items-center justify-center gap-2 px-3 sm:px-6 py-2.5 sm:py-3 bg-[#FFD230] hover:bg-[#E6BD2A] text-[#2C1810] font-semibold rounded-md transition-all text-sm sm:text-base"
                   >
                     <Download className="size-4 sm:size-5" />
                     Excel
@@ -3835,7 +3835,7 @@ export function SellerDashboard() {
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
                             <h3 className="text-[#D4AF37] font-bold text-base sm:text-lg truncate">Order {order.id}</h3>
-                            <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-bold bg-${statusInfo.color}-900/30 text-${statusInfo.color}-400 border border-${statusInfo.color}-700/50 flex items-center gap-1 w-fit`}>
+                            <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-bold bg-[#FFD230] text-[#2C1810] border border-[#E6BD2A] flex items-center gap-1 w-fit`}>
                               <StatusIcon className="size-3" />
                               <span className="hidden sm:inline">{statusInfo.label}</span>
                               <span className="sm:hidden">{statusInfo.label.split(' ')[0]}</span>
@@ -3880,7 +3880,7 @@ export function SellerDashboard() {
                         {/* Download Invoice Button */}
                         <button
                           onClick={() => handleDownloadBuybackInvoice(order)}
-                          className="flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold py-2 sm:py-2.5 rounded transition-all flex items-center justify-center gap-2 text-xs sm:text-sm"
+                          className="flex-1 bg-[#FFD230] hover:bg-[#E6BD2A] text-[#2C1810] font-semibold py-2 sm:py-2.5 rounded transition-all flex items-center justify-center gap-2 text-xs sm:text-sm"
                         >
                           <Download className="size-3 sm:size-4" />
                           <span className="hidden sm:inline">Download Invoice</span>
@@ -3911,7 +3911,7 @@ export function SellerDashboard() {
                             <p className="text-[#A08968] text-xs font-semibold mb-3">Order Tracking:</p>
                             <div className="relative">
                               {/* Vertical connecting line */}
-                              <div className="absolute left-3 sm:left-4 top-4 bottom-4 w-0.5 bg-gradient-to-b from-emerald-600 via-[#D4AF37] to-[#8B6F47]"></div>
+                              <div className="absolute left-3 sm:left-4 top-4 bottom-4 w-0.5 bg-gradient-to-b from-[#FFD230] via-[#D4AF37] to-[#8B6F47]"></div>
                               
                               <div className="space-y-3 sm:space-y-4">
                                 {['pending', 'processing', 'packed', 'shipped', 'delivered'].map((step, idx) => {
@@ -3923,10 +3923,10 @@ export function SellerDashboard() {
                                   return (
                                     <div key={step} className="flex items-center gap-2 sm:gap-3 relative">
                                       <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center border-2 border-white shadow-lg z-10 ${
-                                        isCurrent ? 'bg-[#D4AF37]' : isCompleted ? 'bg-emerald-600' : 'bg-[#8B6F47]'
+                                        isCurrent ? 'bg-[#FFD230]' : isCompleted ? 'bg-[#FFD230]' : 'bg-[#8B6F47]'
                                       }`}>
                                         <StepIcon className={`size-3 sm:size-4 ${
-                                          isCurrent ? 'text-[#2C1810]' : isCompleted ? 'text-white' : 'text-[#D4C5AA]'
+                                          isCurrent ? 'text-[#2C1810]' : isCompleted ? 'text-[#2C1810]' : 'text-[#D4C5AA]'
                                         }`} />
                                       </div>
                                       <p className={`text-xs sm:text-sm ${
@@ -3942,7 +3942,7 @@ export function SellerDashboard() {
                             </div>
                           </div>
 
-                          {/* Cancel Button - Mobile Optimized */}
+                          {/* Cancel Button - Desktop Optimized */}
                           {order.status !== 'delivered' && order.status !== 'cancelled' && (
                             <button
                               onClick={() => {
@@ -3953,9 +3953,9 @@ export function SellerDashboard() {
                                   }
                                 }
                               }}
-                              className="w-full mt-3 bg-red-700 hover:bg-red-600 text-white font-semibold py-2 rounded transition-all flex items-center justify-center gap-2 text-xs sm:text-sm"
+                              className="w-full sm:w-auto mt-3 bg-red-700 hover:bg-red-600 text-white font-semibold px-4 py-1.5 rounded transition-all flex items-center justify-center gap-2 text-xs"
                             >
-                              <Ban className="size-3 sm:size-4" />
+                              <Ban className="size-3" />
                               Cancel Order
                             </button>
                           )}
