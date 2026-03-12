@@ -96,12 +96,12 @@ export function OrdersPage() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'delivered': return <CheckCircle className="size-5 text-[#9FC131]" />;
+      case 'delivered': return <CheckCircle className="size-5 text-[#FFD230]" />;
       case 'shipped': return <Truck className="size-5 text-[#D4AF37]" />;
       case 'cancelled': return <X className="size-5 text-[#C17767]" />;
       case 'rejected': return <X className="size-5 text-[#C17767]" />;
       case 'packed': return <Package className="size-5 text-[#8B6F47]" />;
-      case 'accepted': return <CheckCircle className="size-5 text-[#9FC131]" />;
+      case 'accepted': return <CheckCircle className="size-5 text-[#FFD230]" />;
       case 'new': return <Clock className="size-5 text-[#D4AF37]" />;
       default: return <Clock className="size-5 text-[#D4AF37]" />;
     }
@@ -109,12 +109,12 @@ export function OrdersPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'delivered': return 'bg-[#9FC131]/20 border-[#9FC131]/50 text-[#9FC131]';
+      case 'delivered': return 'bg-[#FFD230]/20 border-[#FFD230]/50 text-[#FFD230]';
       case 'shipped': return 'bg-[#D4AF37]/20 border-[#D4AF37]/50 text-[#D4AF37]';
       case 'cancelled': return 'bg-[#C17767]/20 border-[#C17767]/50 text-[#C17767]';
       case 'rejected': return 'bg-[#C17767]/20 border-[#C17767]/50 text-[#C17767]';
       case 'packed': return 'bg-[#8B6F47]/20 border-[#8B6F47]/50 text-[#8B6F47]';
-      case 'accepted': return 'bg-[#9FC131]/20 border-[#9FC131]/50 text-[#9FC131]';
+      case 'accepted': return 'bg-[#FFD230]/20 border-[#FFD230]/50 text-[#FFD230]';
       case 'new': return 'bg-[#D4AF37]/20 border-[#D4AF37]/50 text-[#D4AF37]';
       default: return 'bg-[#8B6F47]/20 border-[#8B6F47]/50 text-[#D4AF37]';
     }
@@ -249,10 +249,39 @@ export function OrdersPage() {
                     <span className="whitespace-nowrap">{order.status === 'new' ? 'Order Placed' : order.status === 'placed' ? 'Order Placed' : order.status.charAt(0).toUpperCase() + order.status.slice(1)}</span>
                   </div>
                 </div>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <div>
+                
+                {/* Order Items with Images */}
+                <div className="flex gap-3 sm:gap-4 mb-4">
+                  {/* Book Images */}
+                  <div className="flex gap-2 flex-shrink-0">
+                    {order.items && order.items.length > 0 ? (
+                      order.items.slice(0, 3).map((item: any, idx: number) => {
+                        const book = item.book || item;
+                        return (
+                          <img 
+                            key={idx}
+                            src={book.image || '/placeholder-book.jpg'} 
+                            alt={book.title || 'Book'} 
+                            className="w-12 h-16 sm:w-16 sm:h-20 object-cover rounded border-2 border-[#8B6F47] shadow-md" 
+                          />
+                        );
+                      })
+                    ) : (
+                      <div className="w-12 h-16 sm:w-16 sm:h-20 bg-[#8B6F47]/20 rounded border-2 border-[#8B6F47] flex items-center justify-center">
+                        <Package className="size-4 sm:size-6 text-[#8B6F47]" />
+                      </div>
+                    )}
+                    {order.items && order.items.length > 3 && (
+                      <div className="w-12 h-16 sm:w-16 sm:h-20 bg-[#2C1810] rounded border-2 border-[#8B6F47] flex items-center justify-center">
+                        <span className="text-[#D4AF37] font-bold text-xs sm:text-sm">+{order.items.length - 3}</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Order Details */}
+                  <div className="flex-1 min-w-0">
                     <p className="text-xs sm:text-sm text-[#D4C5AA] mb-1">{order.items.length} items</p>
-                    <div className="text-xs text-[#A08968] mb-2 max-w-xs">
+                    <div className="text-xs text-[#A08968] mb-2">
                       {order.items.slice(0, 2).map((item: any, idx: number) => (
                         <span key={idx}>
                           {item.book?.title || 'Unknown Book'}
@@ -263,36 +292,37 @@ export function OrdersPage() {
                     </div>
                     <p className="font-bold text-[#D4AF37] text-base sm:text-lg">₹{order.total}</p>
                   </div>
-                  <div className="flex gap-2 flex-wrap">
-                    <button className="bg-gradient-to-r from-[#8B6F47] to-[#6B5537] hover:from-[#D4AF37] hover:to-[#B8941F] text-[#F5E6D3] font-bold px-3 sm:px-6 py-1.5 sm:py-2 text-xs sm:text-sm rounded-md transition-all shadow-md" onClick={() => handleViewOrder(order)}>
-                      View Details
-                    </button>
-                    {order.status === 'delivered' && (
-                      <button
-                        onClick={async () => {
-                          setReviewingOrder(order);
-                          setLoadingReview(true);
-                          try {
-                            const review = await apiService.getReviewByOrder(order.id);
-                            if (review) {
-                              setExistingReview(review);
-                              setRating(review.rating);
-                              setFeedback(review.feedback);
-                              setReviewImages(review.images || []);
-                            }
-                          } catch (error) {
-                            console.error('Error loading review:', error);
-                          } finally {
-                            setLoadingReview(false);
+                </div>
+                
+                <div className="flex gap-2 flex-wrap justify-end">
+                  <button className="bg-gradient-to-r from-[#8B6F47] to-[#6B5537] hover:from-[#D4AF37] hover:to-[#B8941F] text-[#F5E6D3] font-bold px-3 sm:px-6 py-1.5 sm:py-2 text-xs sm:text-sm rounded-md transition-all shadow-md" onClick={() => handleViewOrder(order)}>
+                    View Details
+                  </button>
+                  {order.status === 'delivered' && (
+                    <button
+                      onClick={async () => {
+                        setReviewingOrder(order);
+                        setLoadingReview(true);
+                        try {
+                          const review = await apiService.getReviewByOrder(order.id);
+                          if (review) {
+                            setExistingReview(review);
+                            setRating(review.rating);
+                            setFeedback(review.feedback);
+                            setReviewImages(review.images || []);
                           }
-                        }}
-                        className="bg-gradient-to-r from-[#D4AF37] to-[#B8941F] hover:from-[#B8941F] hover:to-[#D4AF37] text-[#2C1810] font-bold px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-md transition-all shadow-md flex items-center gap-1 sm:gap-2"
-                      >
-                        <Star className="size-3 sm:size-4" />
-                        Rate
-                      </button>
-                    )}
-                  </div>
+                        } catch (error) {
+                          console.error('Error loading review:', error);
+                        } finally {
+                          setLoadingReview(false);
+                        }
+                      }}
+                      className="bg-gradient-to-r from-[#D4AF37] to-[#B8941F] hover:from-[#B8941F] hover:to-[#D4AF37] text-[#2C1810] font-bold px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-md transition-all shadow-md flex items-center gap-1 sm:gap-2"
+                    >
+                      <Star className="size-3 sm:size-4" />
+                      Rate
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -544,7 +574,7 @@ export function OrdersPage() {
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h2 className="text-2xl font-bold text-[#D4AF37]" style={{ fontFamily: "'Playfair Display', serif" }}>
+                    <h2 className="text-2xl font-bold text-[#FFD230]" style={{ fontFamily: "'Playfair Display', serif" }}>
                       Track Order
                     </h2>
                     <p className="text-sm text-[#D4C5AA] mt-1">Order {trackingOrder.id}</p>
@@ -588,20 +618,20 @@ export function OrdersPage() {
                             update.completed 
                               ? update.status === 'Cancelled' 
                                 ? 'bg-red-900/30 border-2 border-red-700' 
-                                : 'bg-emerald-900/30 border-2 border-emerald-700'
+                                : 'bg-[#FFD230] border-2 border-[#FFD230]'
                               : 'bg-[#8B6F47]/20 border-2 border-[#8B6F47]/40'
                           }`}>
                             <Icon className={`size-5 ${
                               update.completed 
                                 ? update.status === 'Cancelled' 
                                   ? 'text-red-400' 
-                                  : 'text-emerald-400'
+                                  : 'text-black'
                                 : 'text-[#8B6F47]'
                             }`} />
                           </div>
                           {!isLast && (
                             <div className={`w-0.5 h-full min-h-[60px] ${
-                              update.completed ? 'bg-emerald-700' : 'bg-[#8B6F47]/40'
+                              update.completed ? 'bg-[#FFD230]' : 'bg-[#8B6F47]/40'
                             }`} />
                           )}
                         </div>
@@ -617,7 +647,7 @@ export function OrdersPage() {
                               </h3>
                               <span className={`text-xs px-2 py-1 rounded-full ${
                                 update.completed 
-                                  ? 'bg-emerald-900/30 text-emerald-400'
+                                  ? 'bg-[#FFD230]/20 text-white border border-[#FFD230]'
                                   : 'bg-[#8B6F47]/20 text-[#A08968]'
                               }`}>
                                 {update.timestamp}
