@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Navbar } from '../components/Navbar';
 import { Invoice } from '../components/Invoice';
 import { ReturnRequestModal } from '../components/ReturnRequestModal';
-import { Package, Clock, Truck, CheckCircle, X, MapPin, CreditCard, FileText, PackageCheck, ClipboardList, RotateCcw, Star } from 'lucide-react';
+import { Package, Clock, Truck, CheckCircle, X, MapPin, CreditCard, FileText, PackageCheck, ClipboardList, RotateCcw, Star, Copy } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiService } from '../../services/api';
 import type { Order, TrackingUpdate } from '../types';
@@ -240,7 +240,20 @@ export function OrdersPage() {
                       <Package className="size-5 sm:size-6 text-[#F5E6D3]" />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-bold text-[#F5E6D3] text-sm sm:text-base truncate">Order: {order.id}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-[#F5E6D3] text-sm sm:text-base truncate">Order: {order.id}</p>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigator.clipboard.writeText(order.id);
+                            toast.success('Order ID copied to clipboard!');
+                          }}
+                          className="text-[#D4AF37] hover:text-[#FFD230] transition-colors p-1 rounded hover:bg-[#8B6F47]/20"
+                          title="Copy Order ID"
+                        >
+                          <Copy className="size-3 sm:size-4" />
+                        </button>
+                      </div>
                       <p className="text-xs sm:text-sm text-[#D4C5AA]">{order.date}</p>
                     </div>
                   </div>
