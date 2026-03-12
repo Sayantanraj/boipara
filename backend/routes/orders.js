@@ -39,7 +39,11 @@ router.post('/', auth, async (req, res) => {
     const shipping = subtotal > 500 ? 0 : 50;
     const total = subtotal + shipping;
 
+    // Generate custom order ID
+    const customOrderId = await Order.generateOrderId();
+
     const order = new Order({
+      orderId: customOrderId, // Add custom order ID
       userId: req.user.id,
       items: orderItems,
       subtotal,
@@ -61,7 +65,7 @@ router.post('/', auth, async (req, res) => {
       userId: req.user.id,
       type: 'order',
       title: 'Order Placed Successfully',
-      message: `Your order of ₹${order.total} has been placed successfully. Order ID: ${order._id.toString().slice(-6)}`,
+      message: `Your order of ₹${order.total} has been placed successfully. Order ID: ${order.orderId}`,
       orderId: order._id,
       link: '/orders'
     });
@@ -95,7 +99,7 @@ router.post('/', auth, async (req, res) => {
           userId: sellerId,
           type: 'order',
           title: 'New Order Received',
-          message: `You have received a new order from ${req.user.name}. Order ID: ${order._id.toString().slice(-6)}`,
+          message: `You have received a new order from ${req.user.name}. Order ID: ${order.orderId}`,
           orderId: order._id,
           link: '/seller/dashboard'
         });
@@ -109,7 +113,7 @@ router.post('/', auth, async (req, res) => {
     const io = req.app.get('io');
     if (io) {
       io.to(`customer-${req.user.id}`).emit('order-created', {
-        orderId: order._id,
+        orderId: order.orderId,
         status: order.status,
         total: order.total
       });
@@ -117,7 +121,7 @@ router.post('/', auth, async (req, res) => {
       // Notify sellers
       for (let sellerId of sellerIds) {
         io.to(`seller-${sellerId}`).emit('new-order', {
-          orderId: order._id,
+          orderId: order.orderId,
           customerName: req.user.name
         });
       }
@@ -133,46 +137,53 @@ router.post('/', auth, async (req, res) => {
 // Get user orders
 router.get('/my-orders', auth, async (req, res) => {
   try {
+    console.log('🔍 Fetching orders for user:', req.user.id);
     const orders = await Order.find({ userId: req.user.id })
       .populate('items.bookId')
       .sort({ createdAt: -1 });
     
-    // Format orders for frontend
-    const formattedOrders = orders.map(order => ({
-      id: order._id.toString(),
-      userId: order.userId.toString(),
-      items: order.items.map(item => ({
-        bookId: item.bookId?._id?.toString() || item.bookId,
-        quantity: item.quantity,
-        book: item.bookId ? {
-          id: item.bookId._id?.toString(),
-          title: item.bookId.title,
-          author: item.bookId.author,
-          price: item.bookId.price,
-          image: item.bookId.image,
-          sellerName: item.bookId.sellerName || 'Unknown Seller'
-        } : null
-      })),
-      total: order.total,
-      subtotal: order.subtotal || order.total,
-      shipping: order.shipping || 0,
-      status: order.status,
-      date: new Date(order.createdAt).toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric' 
-      }),
-      shippingAddress: order.shippingAddress,
-      customerName: order.customerName,
-      customerEmail: order.customerEmail,
-      customerPhone: order.customerPhone,
-      paymentMethod: order.paymentMethod || 'Cash on Delivery',
-      trackingNumber: order.trackingId
-    }));
+    console.log('📦 Found orders:', orders.length);
     
-    res.json(formattedOrders);
+    // Format orders for frontend
+    const formattedOrders = orders.map(order => {
+      console.log('📋 Processing order:', order.orderId || order._id);
+      return {
+        id: order.orderId || order._id.toString(), // Use custom orderId first
+        userId: order.userId.toString(),
+        items: order.items.map(item => ({
+          bookId: item.bookId?._id?.toString() || item.bookId,
+          quantity: item.quantity,
+          book: item.bookId ? {
+            id: item.bookId._id?.toString(),
+            title: item.bookId.title,
+            author: item.bookId.author,
+            price: item.bookId.price,
+            image: item.bookId.image,
+            sellerName: item.bookId.sellerName || 'Unknown Seller'
+          } : null
+        })),
+        total: order.total,
+        subtotal: order.subtotal || order.total,
+        shipping: order.shipping || 0,
+        status: order.status,
+        date: new Date(order.createdAt).toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'short', 
+          day: 'numeric' 
+        }),
+        shippingAddress: order.shippingAddress,
+        customerName: order.customerName,
+        customerEmail: order.customerEmail,
+        customerPhone: order.customerPhone,
+        paymentMethod: order.paymentMethod || 'Cash on Delivery',
+        trackingNumber: order.trackingId
+      };
+    });
+    
+    console.log('✅ Returning formatted orders:', formattedOrders.length);
+    res.json(formattedOrders); // Return array directly
   } catch (error) {
-    console.error('Error fetching orders:', error);
+    console.error('❌ Error fetching orders:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -193,13 +204,13 @@ router.patch('/:id/status', async (req, res) => {
 
     // Create notification based on status
     const statusMessages = {
-      'accepted': { title: 'Order Accepted', message: 'Your order has been accepted by the seller and is being prepared.' },
-      'confirmed': { title: 'Order Confirmed', message: 'Your order has been confirmed and will be packed soon.' },
-      'packed': { title: 'Order Packed', message: 'Your order has been packed and is ready for shipment.' },
-      'shipped': { title: 'Order Shipped', message: 'Your order is on the way! Track your delivery.' },
-      'delivered': { title: 'Order Delivered', message: 'Your order has been delivered successfully. Enjoy your books!' },
-      'rejected': { title: 'Order Rejected', message: 'Unfortunately, your order has been rejected. Please contact support.' },
-      'cancelled': { title: 'Order Cancelled', message: 'Your order has been cancelled.' }
+      'accepted': { title: 'Order Accepted', message: `Your order ${order.orderId} has been accepted by the seller and is being prepared.` },
+      'confirmed': { title: 'Order Confirmed', message: `Your order ${order.orderId} has been confirmed and will be packed soon.` },
+      'packed': { title: 'Order Packed', message: `Your order ${order.orderId} has been packed and is ready for shipment.` },
+      'shipped': { title: 'Order Shipped', message: `Your order ${order.orderId} is on the way! Track your delivery.` },
+      'delivered': { title: 'Order Delivered', message: `Your order ${order.orderId} has been delivered successfully. Enjoy your books!` },
+      'rejected': { title: 'Order Rejected', message: `Unfortunately, your order ${order.orderId} has been rejected. Please contact support.` },
+      'cancelled': { title: 'Order Cancelled', message: `Your order ${order.orderId} has been cancelled.` }
     };
 
     if (statusMessages[status]) {
@@ -217,7 +228,7 @@ router.patch('/:id/status', async (req, res) => {
     const io = req.app.get('io');
     if (io) {
       io.to(`customer-${order.userId}`).emit('order-update', {
-        orderId: order._id,
+        orderId: order.orderId,
         status: order.status,
         timestamp: new Date()
       });
@@ -263,7 +274,7 @@ router.patch('/:id/cancel', auth, async (req, res) => {
       userId: req.user.id,
       type: 'order',
       title: 'Order Cancelled',
-      message: `Your order has been cancelled successfully. Refund will be processed if applicable.`,
+      message: `Your order ${order.orderId} has been cancelled successfully. Refund will be processed if applicable.`,
       orderId: order._id,
       link: '/orders'
     });
@@ -272,7 +283,7 @@ router.patch('/:id/cancel', auth, async (req, res) => {
     const io = req.app.get('io');
     if (io) {
       io.to(`customer-${req.user.id}`).emit('order-cancelled', {
-        orderId: order._id,
+        orderId: order.orderId,
         status: 'cancelled',
         timestamp: new Date()
       });
@@ -297,7 +308,7 @@ router.get('/admin/all-orders', auth, async (req, res) => {
       .lean();
     
     const formattedOrders = orders.map(order => ({
-      id: order._id.toString(),
+      id: order.orderId || order._id.toString(), // Use custom orderId first
       userId: order.userId?._id?.toString() || order.userId?.toString() || 'unknown',
       items: order.items
         .filter(item => item.bookId)
@@ -356,13 +367,13 @@ router.get('/admin/seller-orders', auth, async (req, res) => {
     console.log(`📦 Found ${orders.length} total orders`);
     
     const formattedOrders = orders.map(order => {
-      console.log(`Processing order ${order._id}:`, {
+      console.log(`Processing order ${order.orderId || order._id}:`, {
         itemsCount: order.items.length,
         hasValidBooks: order.items.filter(item => item.bookId).length
       });
       
       return {
-        id: order._id.toString(),
+        id: order.orderId || order._id.toString(), // Use custom orderId first
         userId: order.userId?._id?.toString() || order.userId?.toString() || 'unknown',
         items: order.items.map(item => ({
           bookId: item.bookId?._id?.toString() || 'unknown',
@@ -435,7 +446,7 @@ router.get('/seller/orders', auth, async (req, res) => {
       );
       
       return {
-        id: order._id,
+        id: order.orderId || order._id.toString(), // Use custom orderId first
         userId: order.userId,
         items: sellerItems.map(item => ({
           bookId: item.bookId._id,

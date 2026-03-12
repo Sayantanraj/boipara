@@ -249,6 +249,7 @@ class ApiService {
   async getMyOrders() {
     try {
       const data = await this.request('/orders/my-orders');
+      console.log('API: Received orders data:', data);
       // Backend now returns array directly, wrap it for consistency
       return { orders: Array.isArray(data) ? data : [] };
     } catch (error) {

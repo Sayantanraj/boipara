@@ -240,7 +240,7 @@ export function OrdersPage() {
                       <Package className="size-5 sm:size-6 text-[#F5E6D3]" />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-bold text-[#F5E6D3] text-sm sm:text-base truncate">Order {order.id}</p>
+                      <p className="font-bold text-[#F5E6D3] text-sm sm:text-base truncate">Order: {order.id}</p>
                       <p className="text-xs sm:text-sm text-[#D4C5AA]">{order.date}</p>
                     </div>
                   </div>
