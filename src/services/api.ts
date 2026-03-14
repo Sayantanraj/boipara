@@ -560,13 +560,80 @@ class ApiService {
 
   // Support Tickets
   async getAllSupportTickets() {
-    return this.request('/support/admin/all');
+    try {
+      console.log('📞 API: Getting all support tickets (admin)...');
+      console.log('📞 API: Token exists:', !!this.token);
+      console.log('📞 API: Making request to /support/admin/all');
+      
+      const response = await this.request('/support/admin/all');
+      console.log('📞 API: Support tickets response:', response);
+      
+      // Backend returns { tickets: [...] }, extract the tickets array
+      return response.tickets || [];
+    } catch (error: any) {
+      console.error('📞 API Error - getAllSupportTickets:', error);
+      console.error('📞 API Error details:', {
+        message: error.message,
+        status: error.status,
+        hasToken: !!this.token,
+        endpoint: '/support/admin/all'
+      });
+      return []; // Return empty array on error
+    }
   }
 
   async updateSupportTicketStatus(ticketId: string, status: string, priority?: string, adminNotes?: string) {
     return this.request(`/support/${ticketId}/status`, {
       method: 'PATCH',
       body: JSON.stringify({ status, priority, adminNotes }),
+    });
+  }
+
+  // Customer Support Tickets
+  async createSupportTicket(ticketData: any) {
+    return this.request('/support', {
+      method: 'POST',
+      body: JSON.stringify(ticketData),
+    });
+  }
+
+  async getSupportTickets() {
+    try {
+      console.log('📞 API: Getting support tickets...');
+      console.log('📞 API: Token exists:', !!this.token);
+      console.log('📞 API: Making request to /support');
+      
+      const response = await this.request('/support');
+      console.log('📞 API: Support tickets response:', response);
+      
+      return response;
+    } catch (error: any) {
+      console.error('📞 API Error - getSupportTickets:', error);
+      console.error('📞 API Error details:', {
+        message: error.message,
+        status: error.status,
+        hasToken: !!this.token,
+        endpoint: '/support'
+      });
+      throw error;
+    }
+  }
+
+  async getSupportTicket(ticketId: string) {
+    return this.request(`/support/${ticketId}`);
+  }
+
+  async addTicketMessage(messageData: any) {
+    return this.request(`/support/${messageData.ticketId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ message: messageData.message }),
+    });
+  }
+
+  async addAdminMessage(ticketId: string, message: string) {
+    return this.request(`/support/${ticketId}/admin-message`, {
+      method: 'POST',
+      body: JSON.stringify({ message }),
     });
   }
 }

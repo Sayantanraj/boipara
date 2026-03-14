@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Navbar } from '../components/Navbar';
-import { Users, Store, BookOpen, IndianRupee, TrendingUp, Package, AlertCircle, CheckCircle, Clock, Shield, X, Star, MapPin, Award, Mail, Calendar, ShoppingBag, Tag, Download, RefreshCw, FileText, RotateCcw, MessageCircle, ChevronDown } from 'lucide-react';
+import { TicketMessagingModal } from '../components/TicketMessagingModal';
+import { Users, Store, BookOpen, IndianRupee, TrendingUp, Package, AlertCircle, CheckCircle, Clock, Shield, X, Star, MapPin, Award, Mail, Calendar, ShoppingBag, Tag, Download, RefreshCw, FileText, RotateCcw, MessageCircle, ChevronDown, Send } from 'lucide-react';
 import type { User, CartItem, BuybackRequest, Order, PendingBook, ReturnRequest } from '../types';
 import { mockBooks, mockSellers, mockUsers } from '../data/mockData';
 import { Link, useNavigate } from 'react-router-dom';
@@ -85,6 +86,15 @@ export function AdminDashboard() {
   const [returnRequests, setReturnRequests] = useState<ReturnRequest[]>([]);
   const [loadingReturns, setLoadingReturns] = useState(true);
   
+  // Support ticket messaging state
+  const [selectedTicketForMessaging, setSelectedTicketForMessaging] = useState<any>(null);
+  const [showTicketMessaging, setShowTicketMessaging] = useState(false);
+  const [ticketMessages, setTicketMessages] = useState<{ [ticketId: string]: any[] }>(() => {
+    const saved = localStorage.getItem('ticketMessages');
+    return saved ? JSON.parse(saved) : {};
+  });
+  const [sendingMessage, setSendingMessage] = useState(false);
+
   // Support tickets from database
   const [supportTickets, setSupportTickets] = useState<any[]>([]);
   const [loadingSupportTickets, setLoadingSupportTickets] = useState(true);
@@ -223,19 +233,37 @@ export function AdminDashboard() {
     const loadSupportTickets = async () => {
       try {
         setLoadingSupportTickets(true);
+        console.log('🎫 Loading support tickets...');
+        console.log('🎫 User role:', user?.role);
+        console.log('🎫 Token exists:', !!localStorage.getItem('token'));
+        
         const tickets = await apiService.getAllSupportTickets();
-        setSupportTickets(tickets);
-        console.log('🎫 Loaded support tickets from database:', tickets.length);
+        console.log('🎫 Raw API response:', tickets);
+        console.log('🎫 Is array?', Array.isArray(tickets));
+        console.log('🎫 Tickets length:', tickets?.length || 0);
+        
+        setSupportTickets(Array.isArray(tickets) ? tickets : []);
+        console.log('🎫 Loaded support tickets from database:', Array.isArray(tickets) ? tickets.length : 'undefined');
       } catch (error) {
-        console.error('Error loading support tickets:', error);
-        toast.error('Failed to load support tickets');
+        console.error('❌ Error loading support tickets:', error);
+        console.error('❌ Error details:', {
+          message: error.message,
+          status: error.status,
+          hasToken: !!localStorage.getItem('token'),
+          userRole: user?.role,
+          endpoint: '/support/admin/all'
+        });
+        setSupportTickets([]);
+        toast.error('Failed to load support tickets: ' + error.message);
       } finally {
         setLoadingSupportTickets(false);
       }
     };
 
-    loadSupportTickets();
-  }, []);
+    if (user && user.role === 'admin') {
+      loadSupportTickets();
+    }
+  }, [user]);
 
   // Load buyback sales (seller purchases) from database
   useEffect(() => {
@@ -349,10 +377,74 @@ export function AdminDashboard() {
     };
   });
   
-  // Save platform settings to localStorage whenever they change
+  // Save ticket messages to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem('boiParaPlatformSettings', JSON.stringify(platformSettings));
-  }, [platformSettings]);
+    localStorage.setItem('ticketMessages', JSON.stringify(ticketMessages));
+  }, [ticketMessages]);
+
+  // Function to send message to ticket
+  const sendMessageToTicket = async (ticketId: string, message: string, ticket: any) => {
+    if (!message.trim()) {
+      toast.error('Please enter a message');
+      return;
+    }
+
+    setSendingMessage(true);
+    
+    try {
+      // Save message to database using API
+      await apiService.addAdminMessage(ticketId, message.trim());
+      
+      // Update ticket status to in-progress if it's open
+      if (ticket.status === 'open') {
+        await apiService.updateSupportTicketStatus(ticketId, 'in-progress');
+        setSupportTickets(prev => prev.map(t => 
+          t._id === ticketId ? { ...t, status: 'in-progress' } : t
+        ));
+      }
+
+      // Clear the message input
+      const messageInput = document.getElementById(`message-${ticketId}`) as HTMLTextAreaElement;
+      if (messageInput) {
+        messageInput.value = '';
+      }
+
+      toast.success('Message sent and saved to database!');
+      
+      // Refresh support tickets to get updated messages
+      setTimeout(async () => {
+        try {
+          const tickets = await apiService.getAllSupportTickets();
+          setSupportTickets(Array.isArray(tickets) ? tickets : []);
+        } catch (error) {
+          console.error('Error refreshing tickets:', error);
+        }
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Error sending admin message:', error);
+      toast.error('Failed to send message to database');
+      
+      // Fallback to localStorage as backup
+      const newMessage = {
+        id: Date.now().toString(),
+        message: message.trim(),
+        sender: 'admin',
+        senderName: user?.name || 'Admin',
+        timestamp: new Date().toISOString(),
+        ticketId: ticketId
+      };
+
+      setTicketMessages(prev => ({
+        ...prev,
+        [ticketId]: [...(prev[ticketId] || []), newMessage]
+      }));
+      
+      toast.info('Message saved locally as backup');
+    } finally {
+      setSendingMessage(false);
+    }
+  };
   
   // Modal states
   const [selectedSeller, setSelectedSeller] = useState<string | null>(null);
@@ -1401,7 +1493,7 @@ export function AdminDashboard() {
                 {activeTab === 'returns' && <><RotateCcw className="size-4" /> Returns</>}
                 {activeTab === 'buybackSales' && <><RefreshCw className="size-4" /> Buyback Sales</>}
                 {activeTab === 'buyback' && <><AlertCircle className="size-4" /> Buyback ({pendingBuybacks})</>}
-                {activeTab === 'tickets' && <><MessageCircle className="size-4" /> Tickets ({supportTickets.filter(t => t.status === 'open').length})</>}
+                {activeTab === 'tickets' && <><MessageCircle className="size-4" /> Tickets ({(supportTickets || []).filter(t => t.status === 'open').length})</>}
               </span>
               <ChevronDown className={`size-5 transition-transform ${isMobileMenuOpen ? 'rotate-180' : ''}`} />
             </button>
@@ -1435,7 +1527,7 @@ export function AdminDashboard() {
                   <AlertCircle className="size-4" /> Buyback ({pendingBuybacks})
                 </button>
                 <button onClick={() => { setActiveTab('tickets'); setIsMobileMenuOpen(false); }} className={`w-full flex items-center gap-2 px-4 py-3 text-left transition-colors ${activeTab === 'tickets' ? 'bg-[#D4AF37] text-[#2C1810]' : 'text-[#D4C5AA] hover:bg-[#3D2817]'}`}>
-                  <MessageCircle className="size-4" /> Tickets ({supportTickets.filter(t => t.status === 'open').length})
+                  <MessageCircle className="size-4" /> Tickets ({Array.isArray(supportTickets) ? supportTickets.filter(t => t.status === 'open').length : 0})
                 </button>
               </div>
             )}
@@ -1550,7 +1642,7 @@ export function AdminDashboard() {
               }`}
             >
               <MessageCircle className="size-3.5" />
-              Tickets ({supportTickets.filter(t => t.status === 'open').length})
+              Tickets ({(supportTickets || []).filter(t => t.status === 'open').length})
             </button>
           </div>
         </div>
@@ -2626,12 +2718,27 @@ export function AdminDashboard() {
                 onClick={async () => {
                   try {
                     setLoadingSupportTickets(true);
+                    console.log('🔄 Manually refreshing support tickets...');
+                    console.log('🔄 User role:', user?.role);
+                    console.log('🔄 Token exists:', !!localStorage.getItem('token'));
+                    
                     const tickets = await apiService.getAllSupportTickets();
-                    setSupportTickets(tickets);
-                    toast.success(`Refreshed ${tickets.length} support tickets!`);
+                    console.log('🔄 Refreshed tickets:', tickets);
+                    console.log('🔄 Is array?', Array.isArray(tickets));
+                    console.log('🔄 Length:', tickets?.length || 0);
+                    
+                    setSupportTickets(Array.isArray(tickets) ? tickets : []);
+                    toast.success(`Refreshed ${Array.isArray(tickets) ? tickets.length : 0} support tickets!`);
                   } catch (error) {
-                    console.error('Error refreshing support tickets:', error);
-                    toast.error('Failed to refresh support tickets');
+                    console.error('❌ Error refreshing support tickets:', error);
+                    console.error('❌ Refresh error details:', {
+                      message: error.message,
+                      status: error.status,
+                      hasToken: !!localStorage.getItem('token'),
+                      userRole: user?.role,
+                      endpoint: '/support/admin/all'
+                    });
+                    toast.error(`Failed to refresh: ${error.message}`);
                   } finally {
                     setLoadingSupportTickets(false);
                   }
@@ -2682,7 +2789,7 @@ export function AdminDashboard() {
                             </span>
                           </div>
                           <p className="text-xs sm:text-sm text-[#D4C5AA] mb-2 break-words">
-                            <span className="font-semibold text-[#F5E6D3]">From:</span> {ticket.name} ({ticket.email})
+                            <span className="font-semibold text-[#F5E6D3]">From:</span> {ticket.customerName || ticket.name || 'Unknown User'} ({ticket.customerEmail || ticket.email || 'No email provided'})
                           </p>
                           <p className="text-xs sm:text-sm text-[#D4C5AA] mb-2">
                             <span className="font-semibold text-[#F5E6D3]">Role:</span> {ticket.userRole?.toUpperCase() || 'GUEST'}
@@ -2691,7 +2798,7 @@ export function AdminDashboard() {
                             <span className="font-semibold text-[#F5E6D3]">Submitted:</span> {new Date(ticket.createdAt).toLocaleString()}
                           </p>
                           <div className="mt-3 p-3 bg-[#3D2817] rounded border border-[#8B6F47]">
-                            <p className="text-xs sm:text-sm text-[#F5E6D3] break-words">{ticket.message}</p>
+                            <p className="text-xs sm:text-sm text-[#F5E6D3] break-words">{ticket.description || ticket.message || 'No description provided'}</p>
                           </div>
                           {ticket.adminNotes && (
                             <div className="mt-3 p-3 bg-blue-900/20 rounded border border-blue-700/50">
@@ -2701,85 +2808,89 @@ export function AdminDashboard() {
                           )}
                         </div>
                       </div>
-                      <div className="flex flex-col gap-2 mt-4 pt-3 border-t border-[#8B6F47]">
-                        <div className="flex flex-col sm:flex-row gap-2">
-                          <select
-                            value={ticket.status}
-                            onChange={async (e) => {
-                              try {
-                                await apiService.updateSupportTicketStatus(ticket._id, e.target.value);
-                                setSupportTickets(prev => prev.map(t => 
-                                  t._id === ticket._id ? { ...t, status: e.target.value } : t
-                                ));
-                                toast.success('Ticket status updated');
-                              } catch (error) {
-                                console.error('Error updating ticket status:', error);
-                                toast.error('Failed to update ticket status');
-                              }
-                            }}
-                            className="flex-1 px-3 py-2 bg-[#3D2817] border border-[#8B6F47] rounded text-[#F5E6D3] text-xs sm:text-sm focus:outline-none focus:border-[#D4AF37]"
-                          >
-                            <option value="open">Open</option>
-                            <option value="in-progress">In Progress</option>
-                            <option value="resolved">Resolved</option>
-                            <option value="closed">Closed</option>
-                          </select>
-                          <select
-                            value={ticket.priority || 'medium'}
-                            onChange={async (e) => {
-                              try {
-                                await apiService.updateSupportTicketStatus(ticket._id, ticket.status, e.target.value);
-                                setSupportTickets(prev => prev.map(t => 
-                                  t._id === ticket._id ? { ...t, priority: e.target.value } : t
-                                ));
-                                toast.success('Ticket priority updated');
-                              } catch (error) {
-                                console.error('Error updating ticket priority:', error);
-                                toast.error('Failed to update ticket priority');
-                              }
-                            }}
-                            className="flex-1 px-3 py-2 bg-[#3D2817] border border-[#8B6F47] rounded text-[#F5E6D3] text-xs sm:text-sm focus:outline-none focus:border-[#D4AF37]"
-                          >
-                            <option value="low">Low Priority</option>
-                            <option value="medium">Medium Priority</option>
-                            <option value="high">High Priority</option>
-                            <option value="urgent">Urgent</option>
-                          </select>
+                        <div className="flex flex-col gap-2 mt-4 pt-3 border-t border-[#8B6F47]">
+                          {/* Admin Message Input */}
+                          <div className="mb-3">
+                            <label className="block text-xs text-[#D4AF37] font-semibold mb-2">Send Message to User:</label>
+                            <div className="flex gap-2">
+                              <textarea
+                                placeholder="Type your message to the user..."
+                                className="flex-1 px-3 py-2 bg-[#3D2817] border border-[#8B6F47] rounded text-[#F5E6D3] text-xs sm:text-sm focus:outline-none focus:border-[#D4AF37] resize-none"
+                                rows={2}
+                                id={`message-${ticket._id}`}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const messageInput = document.getElementById(`message-${ticket._id}`) as HTMLTextAreaElement;
+                                  const message = messageInput?.value.trim();
+                                  
+                                  if (!message) {
+                                    toast.error('Please enter a message');
+                                    return;
+                                  }
+                                  
+                                  // Send message to ticket history instead of email
+                                  sendMessageToTicket(ticket._id, message, ticket);
+                                }}
+                                disabled={sendingMessage}
+                                className="px-3 py-2 bg-[#D4AF37] hover:bg-[#C5A028] text-[#2C1810] font-semibold rounded text-xs transition-all flex items-center gap-1 disabled:opacity-50"
+                              >
+                                <Send className="size-4" />
+                                {sendingMessage ? 'Sending...' : 'Send'}
+                              </button>
+                            </div>
+                          </div>
+                          
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <button
+                              onClick={() => {
+                                setSelectedTicketForMessaging(ticket);
+                                setShowTicketMessaging(true);
+                              }}
+                              className="flex-1 px-3 sm:px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold rounded text-xs sm:text-sm transition-all inline-flex items-center justify-center gap-2"
+                            >
+                              <MessageCircle className="size-4" />
+                              View Messages ({(ticket.messages || []).length + (ticketMessages[ticket._id] || []).length})
+                            </button>
+                            <button
+                              onClick={() => {
+                                const userName = ticket.customerName || ticket.name || 'Valued Customer';
+                                const subject = ticket.subject || 'Support Request';
+                                const userEmail = ticket.customerEmail || ticket.email || '';
+                                
+                                if (!userEmail) {
+                                  toast.error('No email address found for this user');
+                                  return;
+                                }
+                                
+                                // Create Gmail compose URL
+                                const emailSubject = encodeURIComponent(`Re: ${subject} - BOI PARA Support`);
+                                const emailBody = encodeURIComponent(
+                                  `Dear ${userName},\n\n` +
+                                  `Thank you for contacting BOI PARA support regarding: "${subject}"\n\n` +
+                                  `Our Response:\n\n\n\n` +
+                                  `If you have any further questions, please don't hesitate to reach out to us.\n\n` +
+                                  `Best regards,\n` +
+                                  `BOI PARA Support Team\n` +
+                                  `Email: ${platformSettings.supportEmail}\n` +
+                                  `Phone: ${platformSettings.phone}`
+                                );
+                                
+                                const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(userEmail)}&su=${emailSubject}&body=${emailBody}`;
+                                
+                                // Open Gmail in the same browser tab
+                                window.open(gmailUrl, '_blank');
+                                
+                                toast.success(`Opening Gmail to send email to ${userEmail}`);
+                              }}
+                              className="flex-1 px-3 sm:px-4 py-2 bg-blue-700 hover:bg-blue-600 text-white font-semibold rounded text-xs sm:text-sm transition-all inline-flex items-center justify-center gap-2"
+                            >
+                              <Mail className="size-4" />
+                              Send Email
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex flex-col sm:flex-row gap-2">
-                          <button
-                            onClick={() => {
-                              const notes = prompt('Add admin notes:');
-                              if (notes) {
-                                apiService.updateSupportTicketStatus(ticket._id, ticket.status, ticket.priority, notes)
-                                  .then(() => {
-                                    setSupportTickets(prev => prev.map(t => 
-                                      t._id === ticket._id ? { ...t, adminNotes: notes } : t
-                                    ));
-                                    toast.success('Admin notes added');
-                                  })
-                                  .catch(error => {
-                                    console.error('Error adding notes:', error);
-                                    toast.error('Failed to add notes');
-                                  });
-                              }
-                            }}
-                            className="flex-1 px-3 sm:px-4 py-2 bg-[#8B6F47] hover:bg-[#D4AF37] text-[#F5E6D3] font-semibold rounded text-xs sm:text-sm transition-all"
-                          >
-                            Add Notes
-                          </button>
-                          <button
-                            onClick={() => {
-                              const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(ticket.email)}&su=${encodeURIComponent(`Re: ${ticket.subject}`)}`;
-                              window.open(gmailUrl, '_blank');
-                            }}
-                            className="flex-1 px-3 sm:px-4 py-2 bg-blue-700 hover:bg-blue-600 text-white font-semibold rounded text-xs sm:text-sm transition-all inline-flex items-center justify-center gap-2"
-                          >
-                            <Mail className="size-4" />
-                            Reply via Email
-                          </button>
-                        </div>
-                      </div>
                     </div>
                   ))
                 ) : (
@@ -3799,6 +3910,192 @@ export function AdminDashboard() {
         </div>
       )}
 
+      {/* Support Ticket Messaging Modal */}
+      {showTicketMessaging && selectedTicketForMessaging && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#3D2817] rounded-lg border-2 border-[#8B6F47] shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex">
+            {/* Left Panel - Ticket List */}
+            <div className="w-1/3 bg-[#2C1810] border-r border-[#8B6F47] flex flex-col">
+              <div className="p-4 border-b border-[#8B6F47]">
+                <h3 className="text-lg font-bold text-[#D4AF37]" style={{ fontFamily: "'Playfair Display', serif" }}>
+                  Support Ticket History
+                </h3>
+                <p className="text-xs text-[#D4C5AA] mt-1">View and manage your support tickets</p>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto">
+                <div className="p-3">
+                  <h4 className="text-sm font-semibold text-[#F5E6D3] mb-3">Your Support Tickets</h4>
+                  <div className="space-y-2">
+                    {supportTickets.map((ticket) => {
+                      const messageCount = (ticketMessages[ticket._id] || []).length;
+                      const isSelected = selectedTicketForMessaging?._id === ticket._id;
+                      
+                      return (
+                        <div
+                          key={ticket._id}
+                          onClick={() => setSelectedTicketForMessaging(ticket)}
+                          className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                            isSelected 
+                              ? 'bg-[#D4AF37]/20 border-[#D4AF37] text-[#F5E6D3]' 
+                              : 'bg-[#3D2817] border-[#8B6F47] hover:border-[#D4AF37]/50 text-[#D4C5AA]'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-mono bg-[#8B6F47]/20 px-2 py-1 rounded">
+                              TKT{ticket._id.slice(-8).toUpperCase()}
+                            </span>
+                            <span className={`px-2 py-1 rounded text-xs font-bold ${
+                              ticket.status === 'open' ? 'bg-orange-900/30 text-orange-400' :
+                              ticket.status === 'in-progress' ? 'bg-blue-900/30 text-blue-400' :
+                              ticket.status === 'resolved' ? 'bg-emerald-900/30 text-emerald-400' :
+                              'bg-gray-900/30 text-gray-400'
+                            }`}>
+                              {ticket.status.toUpperCase().replace('-', ' ')}
+                            </span>
+                          </div>
+                          <h5 className="font-semibold text-sm mb-1 truncate">{ticket.subject}</h5>
+                          <p className="text-xs opacity-75 mb-2 line-clamp-2">{ticket.description || ticket.message}</p>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className={`px-2 py-1 rounded ${
+                              ticket.priority === 'urgent' ? 'bg-red-900/30 text-red-400' :
+                              ticket.priority === 'high' ? 'bg-orange-900/30 text-orange-400' :
+                              ticket.priority === 'medium' ? 'bg-yellow-900/30 text-yellow-400' :
+                              'bg-blue-900/30 text-blue-400'
+                            }`}>
+                              {ticket.priority?.toUpperCase() || 'MEDIUM'}
+                            </span>
+                            <span className="opacity-60">
+                              {new Date(ticket.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <div className="mt-2 text-xs text-[#D4AF37]">
+                            {messageCount} message{messageCount !== 1 ? 's' : ''}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Panel - Messages */}
+            <div className="flex-1 flex flex-col">
+              {/* Header */}
+              <div className="p-4 border-b border-[#8B6F47] flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-[#D4AF37]">
+                    TKT{selectedTicketForMessaging._id.slice(-8).toUpperCase()}
+                  </h3>
+                  <p className="text-sm text-[#D4C5AA]">{selectedTicketForMessaging.subject}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowTicketMessaging(false);
+                    setSelectedTicketForMessaging(null);
+                  }}
+                  className="p-2 bg-red-700 hover:bg-red-600 text-white rounded transition-all"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+
+              {/* Messages Area */}
+              <div className="flex-1 overflow-y-auto p-4">
+                {(ticketMessages[selectedTicketForMessaging._id] || []).length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center">
+                    <MessageCircle className="size-16 text-[#8B6F47] mb-4" />
+                    <h4 className="text-lg font-semibold text-[#F5E6D3] mb-2">Select a ticket to view details</h4>
+                    <p className="text-[#D4C5AA]">Choose a ticket from the list to see messages and respond</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Original Ticket */}
+                    <div className="bg-[#2C1810] rounded-lg p-4 border border-[#8B6F47]">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                          <Users className="size-4 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="font-semibold text-[#F5E6D3]">
+                              {selectedTicketForMessaging.customerName || selectedTicketForMessaging.name || 'User'}
+                            </span>
+                            <span className="text-xs text-[#8B6F47]">
+                              {new Date(selectedTicketForMessaging.createdAt).toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="bg-[#3D2817] rounded-lg p-3 border border-[#8B6F47]">
+                            <p className="text-[#F5E6D3] text-sm leading-relaxed">
+                              {selectedTicketForMessaging.description || selectedTicketForMessaging.message}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Admin Messages */}
+                    {ticketMessages[selectedTicketForMessaging._id].map((message) => (
+                      <div key={message.id} className="bg-[#2C1810] rounded-lg p-4 border border-[#D4AF37]/50">
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 bg-[#D4AF37] rounded-full flex items-center justify-center flex-shrink-0">
+                            <Shield className="size-4 text-[#2C1810]" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="font-semibold text-[#D4AF37]">
+                                {message.senderName} (Admin)
+                              </span>
+                              <span className="text-xs text-[#8B6F47]">
+                                {new Date(message.timestamp).toLocaleString()}
+                              </span>
+                            </div>
+                            <div className="bg-[#D4AF37]/10 rounded-lg p-3 border border-[#D4AF37]/30">
+                              <p className="text-[#F5E6D3] text-sm leading-relaxed">
+                                {message.message}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Message Input */}
+              <div className="p-4 border-t border-[#8B6F47]">
+                <div className="flex gap-3">
+                  <textarea
+                    placeholder="Type your response..."
+                    className="flex-1 px-4 py-3 bg-[#2C1810] border border-[#8B6F47] rounded-lg text-[#F5E6D3] focus:outline-none focus:border-[#D4AF37] resize-none"
+                    rows={3}
+                    id={`modal-message-${selectedTicketForMessaging._id}`}
+                  />
+                  <button
+                    onClick={() => {
+                      const messageInput = document.getElementById(`modal-message-${selectedTicketForMessaging._id}`) as HTMLTextAreaElement;
+                      const message = messageInput?.value.trim();
+                      
+                      if (message) {
+                        sendMessageToTicket(selectedTicketForMessaging._id, message, selectedTicketForMessaging);
+                        messageInput.value = '';
+                      }
+                    }}
+                    disabled={sendingMessage}
+                    className="px-6 py-3 bg-[#D4AF37] hover:bg-[#C5A028] text-[#2C1810] font-semibold rounded-lg transition-all disabled:opacity-50 flex items-center gap-2"
+                  >
+                    <Send className="size-4" />
+                    {sendingMessage ? 'Sending...' : 'Send'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Book Edit Modal */}
       {showBookEditModal && editingBook && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -4034,6 +4331,18 @@ export function AdminDashboard() {
           </div>
         </div>
       )}
+      {/* Support Ticket Messaging Modal */}
+      <TicketMessagingModal
+        showTicketMessaging={showTicketMessaging}
+        setShowTicketMessaging={setShowTicketMessaging}
+        selectedTicketForMessaging={selectedTicketForMessaging}
+        setSelectedTicketForMessaging={setSelectedTicketForMessaging}
+        supportTickets={supportTickets}
+        ticketMessages={ticketMessages}
+        sendMessageToTicket={sendMessageToTicket}
+        sendingMessage={sendingMessage}
+        user={user}
+      />
     </div>
   );
 }

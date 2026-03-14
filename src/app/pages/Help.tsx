@@ -1,21 +1,23 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HelpCircle, Mail, Phone, MessageCircle, Send, ChevronDown, ChevronUp, MapPin, ArrowLeft } from 'lucide-react';
-import type { User } from '../types';
 import { toast } from 'sonner';
-import axios from 'axios';
+import { apiService } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
+import SupportHistory from '../components/SupportHistory';
 
-const API_URL = 'http://localhost:3001/api';
-
-interface HelpProps {
-  user: User | null;
-}
-
-export function Help({ user }: HelpProps) {
+export function Help() {
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'faq' | 'contact' | 'support'>('faq');
+  const [activeTab, setActiveTab] = useState<'faq' | 'contact' | 'support' | 'history'>('faq');
+  const [supportSubTab, setSupportSubTab] = useState<'create' | 'history'>('create');
   const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
   const [supportForm, setSupportForm] = useState({ name: '', email: '', subject: '', message: '' });
+
+  const fetchSupportTickets = () => {
+    // This will be handled by the SupportHistory component
+    console.log('Fetching support tickets...');
+  };
 
   // Load platform settings from localStorage
   const savedSettings = localStorage.getItem('boiParaPlatformSettings');
@@ -84,6 +86,16 @@ export function Help({ user }: HelpProps) {
               }`}
             >
               Support Ticket
+            </button>
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`px-6 py-4 text-sm font-medium transition-colors border-b-2 ${
+                activeTab === 'history'
+                  ? 'text-[#D4AF37] border-[#D4AF37] bg-[#3D2817]'
+                  : 'text-[#A08968] border-transparent hover:text-[#F5E6D3] hover:bg-[#3D2817]/50'
+              }`}
+            >
+              History
             </button>
           </div>
         </div>
@@ -427,12 +439,21 @@ export function Help({ user }: HelpProps) {
 
                 if (formData.name && formData.email && formData.subject && formData.message) {
                   try {
-                    await axios.post(`${API_URL}/support`, formData);
+                    console.log('🎫 Creating support ticket:', formData);
+                    const response = await apiService.createSupportTicket({
+                      subject: formData.subject,
+                      description: formData.message,
+                      priority: 'Medium'
+                    });
+                    console.log('🎫 Ticket created:', response);
                     toast.success('Support ticket submitted successfully! We will get back to you soon.');
                     setSupportForm({ name: '', email: '', subject: '', message: '' });
+                    // Switch to history tab after successful submission
+                    setActiveTab('history');
+                    fetchSupportTickets();
                   } catch (error) {
                     console.error('Error submitting ticket:', error);
-                    toast.error('Failed to submit ticket. Please try again.');
+                    toast.error(`Failed to submit ticket: ${error.message}`);
                   }
                 } else {
                   toast.error('Please fill in all fields');
@@ -509,6 +530,17 @@ export function Help({ user }: HelpProps) {
                 We typically respond to tickets within 24-48 hours.
               </p>
             </div>
+          </div>
+        )}
+
+        {/* History Tab */}
+        {activeTab === 'history' && (
+          <div className="max-w-6xl mx-auto">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-[#F5E6D3] mb-2">Support Ticket History</h2>
+              <p className="text-[#D4C5AA]">View and manage your support tickets</p>
+            </div>
+            <SupportHistory />
           </div>
         )}
       </div>

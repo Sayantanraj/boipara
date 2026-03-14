@@ -1,73 +1,60 @@
 const mongoose = require('mongoose');
 const SupportTicket = require('./models/SupportTicket');
-require('dotenv').config();
+
+// Connect to MongoDB
+mongoose.connect('mongodb+srv://Boipara:sayantan@cluster0.344nydb.mongodb.net/boipara?retryWrites=true&w=majority&appName=Cluster0')
+  .then(() => console.log('✅ Connected to MongoDB'))
+  .catch(err => console.error('❌ MongoDB connection error:', err));
 
 async function testSupportTickets() {
   try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/boipara');
-    console.log('✅ Connected to MongoDB\n');
-
-    // Create a test support ticket
+    console.log('🎫 Testing Support Tickets...');
+    
+    // Create a test ticket
     const testTicket = new SupportTicket({
-      name: 'Test User',
-      email: 'test@example.com',
-      userRole: 'customer',
+      userId: new mongoose.Types.ObjectId(),
+      customerName: 'Test User',
+      customerEmail: 'test@example.com',
       subject: 'Test Support Ticket',
-      message: 'This is a test support ticket to verify the system is working correctly.',
-      status: 'open',
-      priority: 'medium'
+      description: 'This is a test support ticket to verify the system is working.',
+      priority: 'Medium',
+      messages: [{
+        sender: 'customer',
+        senderName: 'Test User',
+        message: 'This is a test support ticket to verify the system is working.',
+        timestamp: new Date()
+      }]
     });
-
+    
     await testTicket.save();
-    console.log('✅ Test ticket created successfully!');
-    console.log('   Ticket ID:', testTicket._id);
-    console.log('   Subject:', testTicket.subject);
-    console.log('   Status:', testTicket.status);
-    console.log('   Priority:', testTicket.priority);
-    console.log('');
-
-    // Fetch all tickets
-    const allTickets = await SupportTicket.find({});
-    console.log(`📊 Total tickets in database: ${allTickets.length}`);
-    console.log('');
-
-    // Show ticket details
-    if (allTickets.length > 0) {
-      console.log('📋 All Support Tickets:');
-      allTickets.forEach((ticket, index) => {
-        console.log(`${index + 1}. ${ticket.subject}`);
-        console.log(`   From: ${ticket.name} (${ticket.email})`);
-        console.log(`   Role: ${ticket.userRole}`);
-        console.log(`   Status: ${ticket.status} | Priority: ${ticket.priority}`);
-        console.log(`   Created: ${ticket.createdAt.toLocaleString()}`);
-        console.log('');
-      });
-    }
-
-    // Test status update
-    testTicket.status = 'in-progress';
-    testTicket.priority = 'high';
-    testTicket.adminNotes = 'Working on this issue';
-    await testTicket.save();
-    console.log('✅ Ticket status updated successfully!');
-    console.log('   New Status:', testTicket.status);
-    console.log('   New Priority:', testTicket.priority);
-    console.log('   Admin Notes:', testTicket.adminNotes);
-    console.log('');
-
-    console.log('🎉 Support Ticket System Test Complete!');
-    console.log('');
-    console.log('Next Steps:');
-    console.log('1. Start the backend server: cd backend && npm run dev');
-    console.log('2. Start the frontend: npm run dev');
-    console.log('3. Go to Help & Support → Support Ticket tab');
-    console.log('4. Submit a test ticket');
-    console.log('5. Login as admin and check the Tickets tab');
-
-    mongoose.connection.close();
+    console.log('✅ Test ticket created:', testTicket.ticketId);
+    
+    // Retrieve all tickets
+    const tickets = await SupportTicket.find({}).sort({ createdAt: -1 });
+    console.log('📋 Found tickets:', tickets.length);
+    
+    tickets.forEach((ticket, index) => {
+      console.log(`\n🎫 Ticket ${index + 1}:`);
+      console.log('  ID:', ticket._id);
+      console.log('  Ticket ID:', ticket.ticketId);
+      console.log('  Customer Name:', ticket.customerName);
+      console.log('  Customer Email:', ticket.customerEmail);
+      console.log('  Subject:', ticket.subject);
+      console.log('  Description:', ticket.description);
+      console.log('  Status:', ticket.status);
+      console.log('  Priority:', ticket.priority);
+      console.log('  Created:', ticket.createdAt);
+    });
+    
+    // Clean up test ticket
+    await SupportTicket.deleteOne({ _id: testTicket._id });
+    console.log('🗑️ Test ticket cleaned up');
+    
   } catch (error) {
-    console.error('❌ Error:', error);
+    console.error('❌ Error testing support tickets:', error);
+  } finally {
     mongoose.connection.close();
+    console.log('🔌 Database connection closed');
   }
 }
 

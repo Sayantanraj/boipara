@@ -18,6 +18,7 @@ import { OrdersPage } from './pages/OrdersPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { Help } from './pages/Help';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { Chatbot } from './components/Chatbot';
 
 export default function App() {
   return (
@@ -42,6 +43,7 @@ export default function App() {
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/help" element={<Help />} />
           </Routes>
+          <Chatbot />
         </BrowserRouter>
       </CartProvider>
     </AuthProvider>
