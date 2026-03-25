@@ -21,8 +21,7 @@ export default defineConfig({
           'router': ['react-router-dom'],
           'ui-radix': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select'],
           'carousel': ['react-slick'],
-          'icons': ['lucide-react'],
-          'utils': ['axios', 'clsx', 'tailwind-merge']
+          'icons': ['lucide-react']
         }
       }
     },
@@ -30,14 +29,10 @@ export default defineConfig({
     terserOptions: {
       compress: {
         drop_console: true,
-        drop_debugger: true,
-        pure_funcs: ['console.log', 'console.info', 'console.debug', 'console.warn']
-      },
-      mangle: {
-        safari10: true
+        drop_debugger: true
       }
     },
-    chunkSizeWarningLimit: 500,
+    chunkSizeWarningLimit: 1000,
     cssCodeSplit: true,
     sourcemap: false,
     reportCompressedSize: false
