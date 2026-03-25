@@ -3,7 +3,16 @@ import { X, Send, Paperclip } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiService } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
-import chatbotLogo from '../../assets/chatbot-logo.png';
+// Updated to use chatbot_logo1.png
+import chatbotLogo from '../../assets/chatbot_logo1.png';
+
+// Add Google Font import for Bitcount Grid Double Ink, Lexend, and Momo Signature
+const fontLink = document.createElement('link');
+fontLink.href = 'https://fonts.googleapis.com/css2?family=Bitcount+Grid+Double+Ink:wght@100..900&family=Lexend:wght@100..900&family=Momo+Signature&display=swap';
+fontLink.rel = 'stylesheet';
+if (!document.head.querySelector(`link[href="${fontLink.href}"]`)) {
+  document.head.appendChild(fontLink);
+}
 
 interface Message {
   text: string;
@@ -948,7 +957,7 @@ Respond as BOIPARA AI Assistant using the real-time database data above.`;
     <>
       {/* Floating Chat Button */}
       <div
-        className={`fixed bottom-8 right-8 w-16 h-16 bg-[#6B5537] rounded-full flex items-center justify-center cursor-pointer shadow-2xl transition-all duration-300 z-50 hover:scale-110 group ${
+        className={`fixed bottom-6 right-6 md:bottom-8 md:right-8 w-14 h-14 md:w-16 md:h-16 bg-[#6B5537] rounded-full flex items-center justify-center cursor-pointer shadow-2xl transition-all duration-300 z-50 hover:scale-110 group ${
           isOpen ? 'scale-0' : 'scale-100'
         }`}
         onClick={() => setIsOpen(true)}
@@ -956,13 +965,13 @@ Respond as BOIPARA AI Assistant using the real-time database data above.`;
         <img 
           src={chatbotLogo} 
           alt="Boipara AI" 
-          className="w-14 h-14 rounded-full object-cover"
+          className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover"
           style={{
             filter: 'brightness(1.1) contrast(1.1)'
           }}
         />
         <div className="absolute right-20 bg-[#2C1810] text-[#d4a017] px-4 py-2 rounded-lg text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-300 border border-[#d4a017] pointer-events-none">
-          Ask Boipara AI
+          Ask Genio AI
         </div>
       </div>
 
@@ -970,10 +979,8 @@ Respond as BOIPARA AI Assistant using the real-time database data above.`;
       {isOpen && (
         <div 
           ref={chatContainerRef}
-          className="fixed bottom-8 right-8 z-50"
+          className="fixed bottom-8 right-8 z-50 md:w-[380px] md:h-[600px] w-[calc(100vw-32px)] h-[calc(100vh-100px)] max-w-[380px] max-h-[600px]"
           style={{
-            width: '380px',
-            height: '600px',
             background: '#3D2817',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
@@ -989,50 +996,61 @@ Respond as BOIPARA AI Assistant using the real-time database data above.`;
           <div 
             className="flex justify-between items-center"
             style={{
-              padding: '24px',
-              background: 'linear-gradient(to bottom, #3D2817, rgba(61, 40, 23, 0.8))'
+              padding: '8px 8px',
+              background: '#b8860b'
             }}
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 md:gap-3">
               <img 
                 src={chatbotLogo} 
-                alt="Boipara AI" 
-                className="w-8 h-8 rounded-full object-cover"
+                alt="GENIO" 
+                className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover"
                 style={{
-                  filter: 'brightness(1.2) contrast(1.1)',
-                  border: '2px solid #4ade80',
-                  boxShadow: '0 0 10px rgba(74, 222, 128, 0.3)'
+                  filter: 'brightness(1.2) contrast(1.1)'
                 }}
               />
               <h1 
                 style={{
-                  fontFamily: "'Playfair Display', serif",
-                  color: '#f5e6c8',
-                  fontSize: '18px',
+                  fontFamily: '"Lexend", sans-serif',
+                  fontWeight: '600',
+                  fontStyle: 'normal',
+                  color: 'white',
+                  fontSize: '16px',
                   margin: 0,
                   letterSpacing: '0.5px'
                 }}
+                className="md:text-lg"
               >
-                BOIPARA AI
+                Genio Ai
               </h1>
             </div>
             <div 
               onClick={() => setIsOpen(false)}
               style={{
-                color: '#d4a017',
+                color: 'white',
                 cursor: 'pointer',
                 fontSize: '20px'
               }}
+              className="md:text-2xl"
             >
               ×
             </div>
           </div>
+          
+          {/* Partition Line */}
+          <div 
+            style={{
+              height: '1px',
+              background: 'linear-gradient(to right, transparent, #d4a017, transparent)',
+              margin: '0 20px'
+            }}
+          ></div>
 
           {/* Scrollable Content */}
           <div 
             ref={chatContentRef}
             className="flex-1 overflow-y-auto flex flex-col gap-4 chat-messages"
-            style={{ padding: '20px' }}
+            style={{ padding: '16px' }}
           >
             {/* Welcome Message */}
             <div 
@@ -1145,7 +1163,7 @@ Respond as BOIPARA AI Assistant using the real-time database data above.`;
           {/* Input Area */}
           <div 
             style={{
-              padding: '20px',
+              padding: '16px',
               background: 'rgba(61, 40, 23, 0.8)',
               borderTop: '1px solid rgba(212, 160, 23, 0.1)'
             }}
