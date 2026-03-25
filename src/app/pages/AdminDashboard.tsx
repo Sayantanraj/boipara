@@ -228,6 +228,25 @@ export function AdminDashboard() {
     loadReturnRequests();
   }, []);
 
+  // Auto-refresh support tickets every 30 seconds to get new customer messages
+  useEffect(() => {
+    if (activeTab === 'tickets' && user && user.role === 'admin') {
+      const interval = setInterval(async () => {
+        try {
+          console.log('🔄 Auto-refreshing support tickets...');
+          const tickets = await apiService.getAllSupportTickets();
+          setSupportTickets(Array.isArray(tickets) ? tickets : []);
+          console.log('🔄 Auto-refresh completed:', tickets?.length || 0, 'tickets');
+        } catch (error) {
+          console.error('❌ Auto-refresh error (suppressed):', error);
+          // Suppress error messages during auto-refresh
+        }
+      }, 30000); // Refresh every 30 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [activeTab, user]);
+
   // Load support tickets from database
   useEffect(() => {
     const loadSupportTickets = async () => {
@@ -254,7 +273,11 @@ export function AdminDashboard() {
           endpoint: '/support/admin/all'
         });
         setSupportTickets([]);
-        toast.error('Failed to load support tickets: ' + error.message);
+        
+        // Only show error toast if it's not a connection issue during initial load
+        if (!error.message?.includes('Cannot connect') && !error.message?.includes('Failed to fetch')) {
+          toast.error('Failed to load support tickets: ' + error.message);
+        }
       } finally {
         setLoadingSupportTickets(false);
       }
@@ -393,6 +416,7 @@ export function AdminDashboard() {
     
     try {
       // Save message to database using API
+      console.log('💬 Sending admin message to database:', { ticketId, message });
       await apiService.addAdminMessage(ticketId, message.trim());
       
       // Update ticket status to in-progress if it's open
@@ -414,8 +438,10 @@ export function AdminDashboard() {
       // Refresh support tickets to get updated messages
       setTimeout(async () => {
         try {
+          console.log('🔄 Refreshing tickets after sending message...');
           const tickets = await apiService.getAllSupportTickets();
           setSupportTickets(Array.isArray(tickets) ? tickets : []);
+          console.log('🔄 Tickets refreshed successfully');
         } catch (error) {
           console.error('Error refreshing tickets:', error);
         }
@@ -2818,20 +2844,44 @@ export function AdminDashboard() {
                                 className="flex-1 px-3 py-2 bg-[#3D2817] border border-[#8B6F47] rounded text-[#F5E6D3] text-xs sm:text-sm focus:outline-none focus:border-[#D4AF37] resize-none"
                                 rows={2}
                                 id={`message-${ticket._id}`}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    const messageInput = e.target as HTMLTextAreaElement;
+                                    const message = messageInput.value.trim();
+                                    
+                                    if (!message) {
+                                      toast.error('Please enter a message');
+                                      return;
+                                    }
+                                    
+                                    // Send message to ticket history instead of email
+                                    sendMessageToTicket(ticket._id, message, ticket);
+                                    messageInput.value = '';
+                                  }
+                                }}
                               />
                               <button
                                 type="button"
                                 onClick={() => {
                                   const messageInput = document.getElementById(`message-${ticket._id}`) as HTMLTextAreaElement;
-                                  const message = messageInput?.value.trim();
+                                  const message = messageInput?.value?.trim() || '';
                                   
-                                  if (!message) {
+                                  console.log('🔍 Admin send button clicked for ticket:', ticket._id);
+                                  console.log('🔍 Message input element:', messageInput);
+                                  console.log('🔍 Message value:', message);
+                                  console.log('🔍 Message length:', message.length);
+                                  
+                                  if (!message || message.length === 0) {
+                                    console.log('❌ No message found, showing error');
                                     toast.error('Please enter a message');
                                     return;
                                   }
                                   
+                                  console.log('✅ Sending admin message:', message);
                                   // Send message to ticket history instead of email
                                   sendMessageToTicket(ticket._id, message, ticket);
+                                  messageInput.value = '';
                                 }}
                                 disabled={sendingMessage}
                                 className="px-3 py-2 bg-[#D4AF37] hover:bg-[#C5A028] text-[#2C1810] font-semibold rounded text-xs transition-all flex items-center gap-1 disabled:opacity-50"
@@ -2844,9 +2894,18 @@ export function AdminDashboard() {
                           
                           <div className="flex flex-col sm:flex-row gap-2">
                             <button
-                              onClick={() => {
+                              onClick={async () => {
                                 setSelectedTicketForMessaging(ticket);
                                 setShowTicketMessaging(true);
+                                
+                                // Refresh the ticket data to get latest messages (suppress errors)
+                                try {
+                                  const tickets = await apiService.getAllSupportTickets();
+                                  setSupportTickets(Array.isArray(tickets) ? tickets : []);
+                                } catch (error) {
+                                  console.error('Error refreshing tickets (suppressed):', error);
+                                  // Suppress error messages when opening ticket modal
+                                }
                               }}
                               className="flex-1 px-3 sm:px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold rounded text-xs sm:text-sm transition-all inline-flex items-center justify-center gap-2"
                             >

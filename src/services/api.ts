@@ -248,12 +248,43 @@ class ApiService {
 
   async getMyOrders() {
     try {
+      console.log('📦 API: Fetching user orders...');
+      console.log('📦 API: Token exists:', !!this.token);
+      console.log('📦 API: Making request to /orders/my-orders');
+      
       const data = await this.request('/orders/my-orders');
-      console.log('API: Received orders data:', data);
-      // Backend now returns array directly, wrap it for consistency
-      return { orders: Array.isArray(data) ? data : [] };
-    } catch (error) {
-      console.error('Error fetching orders:', error);
+      console.log('📦 API: Raw orders response:', data);
+      console.log('📦 API: Response type:', typeof data);
+      console.log('📦 API: Is array:', Array.isArray(data));
+      
+      // Handle different response formats from backend
+      let orders = [];
+      if (Array.isArray(data)) {
+        orders = data;
+      } else if (data && Array.isArray(data.orders)) {
+        orders = data.orders;
+      } else if (data && data.data && Array.isArray(data.data)) {
+        orders = data.data;
+      } else if (data && typeof data === 'object') {
+        // If it's a single order object, wrap it in an array
+        orders = [data];
+      }
+      
+      console.log('📦 API: Processed orders:', orders);
+      console.log('📦 API: Orders count:', orders.length);
+      
+      // Return in consistent format
+      return { orders: orders };
+    } catch (error: any) {
+      console.error('📦 API Error - getMyOrders:', error);
+      console.error('📦 API Error details:', {
+        message: error.message,
+        status: error.status,
+        hasToken: !!this.token,
+        endpoint: '/orders/my-orders'
+      });
+      
+      // Return empty orders array on error
       return { orders: [] };
     }
   }
@@ -293,11 +324,47 @@ class ApiService {
 
   // Admin - Users
   async getAllUsers() {
-    return this.request('/users');
+    try {
+      console.log('📊 API: Fetching all users...');
+      console.log('📊 API: Token exists:', !!this.token);
+      console.log('📊 API: Making request to /users');
+      
+      const result = await this.request('/users');
+      console.log('📊 API: Successfully fetched users:', result.length);
+      console.log('📊 API: Sample user:', result[0] ? { id: result[0]._id, name: result[0].name, role: result[0].role } : 'No users');
+      return result;
+    } catch (error) {
+      console.error('❌ API Error - getAllUsers:', error);
+      console.error('❌ API Error details:', {
+        message: error.message,
+        status: error.status,
+        hasToken: !!this.token,
+        endpoint: '/users'
+      });
+      throw error;
+    }
   }
 
   async getAllSellers() {
-    return this.request('/users/sellers');
+    try {
+      console.log('🏪 API: Fetching all sellers...');
+      console.log('🏪 API: Token exists:', !!this.token);
+      console.log('🏪 API: Making request to /users/sellers');
+      
+      const result = await this.request('/users/sellers');
+      console.log('🏪 API: Successfully fetched sellers:', result.length);
+      console.log('🏪 API: Sample seller:', result[0] ? { id: result[0]._id, name: result[0].name, storeName: result[0].storeName } : 'No sellers');
+      return result;
+    } catch (error) {
+      console.error('❌ API Error - getAllSellers:', error);
+      console.error('❌ API Error details:', {
+        message: error.message,
+        status: error.status,
+        hasToken: !!this.token,
+        endpoint: '/users/sellers'
+      });
+      throw error;
+    }
   }
 
   // Admin - Orders
@@ -582,6 +649,36 @@ class ApiService {
     }
   }
 
+  async getSupportTicketWithMessages(ticketId: string) {
+    try {
+      console.log('💬 API: Getting ticket with messages:', ticketId);
+      console.log('💬 API: Token exists:', !!this.token);
+      console.log('💬 API: User role from token:', this.token ? 'Available' : 'No token');
+      
+      const response = await this.request(`/support/${ticketId}/messages`);
+      console.log('💬 API: Ticket messages response:', response);
+      console.log('💬 API: Response structure:', {
+        hasTicket: !!response.ticket,
+        hasMessages: !!response.ticket?.messages,
+        messagesCount: response.ticket?.messages?.length || 0,
+        ticketId: response.ticket?.ticketId,
+        ticketSubject: response.ticket?.subject
+      });
+      
+      return response;
+    } catch (error: any) {
+      console.error('💬 API Error - getSupportTicketWithMessages:', error);
+      console.error('💬 API Error details:', {
+        ticketId,
+        hasToken: !!this.token,
+        errorMessage: error.message,
+        errorStatus: error.status,
+        endpoint: `/support/${ticketId}/messages`
+      });
+      throw error;
+    }
+  }
+
   async updateSupportTicketStatus(ticketId: string, status: string, priority?: string, adminNotes?: string) {
     return this.request(`/support/${ticketId}/status`, {
       method: 'PATCH',
@@ -624,10 +721,27 @@ class ApiService {
   }
 
   async addTicketMessage(messageData: any) {
-    return this.request(`/support/${messageData.ticketId}/messages`, {
-      method: 'POST',
-      body: JSON.stringify({ message: messageData.message }),
-    });
+    console.log('💬 API: Adding ticket message:', messageData);
+    console.log('💬 API: Token exists:', !!this.token);
+    
+    try {
+      const response = await this.request(`/support/${messageData.ticketId}/messages`, {
+        method: 'POST',
+        body: JSON.stringify({ message: messageData.message }),
+      });
+      console.log('💬 API: Message added successfully:', response);
+      return response;
+    } catch (error: any) {
+      console.error('💬 API Error - addTicketMessage:', error);
+      console.error('💬 API Error details:', {
+        ticketId: messageData.ticketId,
+        message: messageData.message,
+        hasToken: !!this.token,
+        errorMessage: error.message,
+        errorStatus: error.status
+      });
+      throw error;
+    }
   }
 
   async addAdminMessage(ticketId: string, message: string) {

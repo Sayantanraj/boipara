@@ -2,6 +2,89 @@
 @import './tailwind.css';
 @import './theme.css';
 
+/* ===== GLOBAL SCROLLBAR ===== */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a0f0a; /* dark brown */
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    #e0b84b,
+    #b8860b
+  ); /* gold gradient */
+  border-radius: 10px;
+  border: 2px solid #1a0f0a;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    #f5cf65,
+    #c9971c
+  );
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #b8860b #1a0f0a;
+}
+
+/* Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ===== TICKET LIST SCROLLBAR ===== */
+.ticket-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.ticket-list::-webkit-scrollbar-track {
+  background: #2a160d;
+}
+
+.ticket-list::-webkit-scrollbar-thumb {
+  background: #d4a017;
+  border-radius: 10px;
+}
+
+.ticket-list::-webkit-scrollbar-thumb:hover {
+  background: #f1c54b;
+}
+
+/* ===== CHAT MESSAGES SCROLLBAR ===== */
+.chat-messages::-webkit-scrollbar {
+  width: 8px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+  background: #24130c;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    #d4a017,
+    #8b6508
+  );
+  border-radius: 12px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    #f5c542,
+    #b8860b
+  );
+}
+
 /* Slick Carousel Customization */
 .slick-dots {
   bottom: 20px;

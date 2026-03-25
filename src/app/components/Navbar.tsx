@@ -514,7 +514,7 @@ export function Navbar({ user, wishlist = [], notifications = [], onLogout, onMa
                 </Link>
                 <Link
                   to="/browse?bestsellers=true"
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-[#3D2817] text-[#D4AF37] hover:text-[#FFD700] transition-colors border-b border-[#8B6F47]"
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-[#3D2817] text-white hover:text-[#FFD700] transition-colors border-b border-[#8B6F47]"
                   onClick={() => setShowCategoryMenu(false)}
                 >
                   <Star className="size-5" />
@@ -523,7 +523,7 @@ export function Navbar({ user, wishlist = [], notifications = [], onLogout, onMa
                 {user?.role !== 'seller' && (
                   <Link
                     to="/buyback"
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-[#3D2817] text-emerald-400 hover:text-emerald-300 transition-colors border-b border-[#8B6F47]"
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-[#3D2817] text-white hover:text-emerald-300 transition-colors border-b border-[#8B6F47]"
                     onClick={() => setShowCategoryMenu(false)}
                   >
                     <Coins className="size-5" />

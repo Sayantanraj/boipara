@@ -9,15 +9,23 @@ const router = express.Router();
 // Get all users (admin only)
 router.get('/', auth, async (req, res) => {
   try {
+    console.log('📊 Admin fetching users...');
+    console.log('📊 User role:', req.user.role);
+    console.log('📊 User ID:', req.user._id);
+    
     // Check if user is admin
     if (req.user.role !== 'admin') {
+      console.log('❌ Access denied - not admin');
       return res.status(403).json({ error: 'Access denied. Admin only.' });
     }
 
     const users = await User.find({}, '-password').sort({ createdAt: -1 });
+    console.log('✅ Found users:', users.length);
+    console.log('📊 Sample user:', users[0] ? { id: users[0]._id, name: users[0].name, role: users[0].role } : 'No users');
+    
     res.json(users);
   } catch (error) {
-    console.error('Error fetching users:', error);
+    console.error('❌ Error fetching users:', error);
     res.status(500).json({ error: 'Failed to fetch users' });
   }
 });
@@ -25,15 +33,22 @@ router.get('/', auth, async (req, res) => {
 // Get all sellers (admin only)
 router.get('/sellers', auth, async (req, res) => {
   try {
+    console.log('🏪 Admin fetching sellers...');
+    console.log('🏪 User role:', req.user.role);
+    
     // Check if user is admin
     if (req.user.role !== 'admin') {
+      console.log('❌ Access denied - not admin');
       return res.status(403).json({ error: 'Access denied. Admin only.' });
     }
 
     const sellers = await User.find({ role: 'seller' }, '-password').sort({ createdAt: -1 });
+    console.log('✅ Found sellers:', sellers.length);
+    console.log('🏪 Sample seller:', sellers[0] ? { id: sellers[0]._id, name: sellers[0].name, storeName: sellers[0].storeName } : 'No sellers');
+    
     res.json(sellers);
   } catch (error) {
-    console.error('Error fetching sellers:', error);
+    console.error('❌ Error fetching sellers:', error);
     res.status(500).json({ error: 'Failed to fetch sellers' });
   }
 });

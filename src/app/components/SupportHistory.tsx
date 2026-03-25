@@ -33,32 +33,62 @@ export default function SupportHistory() {
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [loading, setLoading] = useState(false);
   const [newMessage, setNewMessage] = useState('');
+  const [loadingMessages, setLoadingMessages] = useState(false);
 
-  // Load admin messages from localStorage
-  const [adminMessages, setAdminMessages] = useState<{ [ticketId: string]: any[] }>(() => {
-    const saved = localStorage.getItem('ticketMessages');
-    return saved ? JSON.parse(saved) : {};
-  });
-
-  useEffect(() => {
-    // Listen for localStorage changes to update admin messages
-    const handleStorageChange = () => {
-      const saved = localStorage.getItem('ticketMessages');
-      if (saved) {
-        setAdminMessages(JSON.parse(saved));
+  // Fetch detailed ticket with messages when a ticket is selected
+  const fetchTicketWithMessages = async (ticketId: string, isInitialLoad = false) => {
+    try {
+      // Only show loading on initial load, not during auto-refresh
+      if (isInitialLoad) {
+        setLoadingMessages(true);
       }
-    };
+      console.log('💬 Customer fetching ticket messages for:', ticketId);
+      
+      const response = await apiService.getSupportTicketWithMessages(ticketId);
+      console.log('💬 Customer received ticket data:', response);
+      
+      if (response && response.ticket) {
+        // Only update if we have new data or this is the initial load
+        const newMessagesCount = response.ticket.messages?.length || 0;
+        const currentMessagesCount = selectedTicket?.messages?.length || 0;
+        
+        if (isInitialLoad || newMessagesCount !== currentMessagesCount) {
+          setSelectedTicket(response.ticket);
+          console.log('💬 Customer updated selected ticket with messages:', response.ticket.messages?.length || 0);
+        } else {
+          console.log('💬 Customer: No new messages, skipping update to prevent flicker');
+        }
+      }
+    } catch (error: any) {
+      console.error('💬 Customer error fetching ticket messages:', error);
+      // Don't show error toast, just log it
+    } finally {
+      if (isInitialLoad) {
+        setLoadingMessages(false);
+      }
+    }
+  };
 
-    window.addEventListener('storage', handleStorageChange);
-    
-    // Also check periodically for same-tab updates
-    const interval = setInterval(handleStorageChange, 1000);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      clearInterval(interval);
-    };
-  }, []);
+  // Auto-refresh messages when a ticket is selected
+  useEffect(() => {
+    if (selectedTicket) {
+      const ticketId = selectedTicket.ticketId || selectedTicket._id;
+      console.log('💬 Customer setting up auto-refresh for ticket:', ticketId);
+      
+      // Initial fetch
+      fetchTicketWithMessages(ticketId, true); // Initial load with loading state
+      
+      // Set up auto-refresh every 15 seconds
+      const interval = setInterval(() => {
+        console.log('💬 Customer auto-refreshing messages...');
+        fetchTicketWithMessages(ticketId, false); // Auto refresh without loading state
+      }, 15000);
+      
+      return () => {
+        clearInterval(interval);
+      };
+    }
+  }, [selectedTicket?._id]);
 
   // Fetch tickets when component mounts or user changes
   useEffect(() => {
@@ -168,13 +198,13 @@ export default function SupportHistory() {
         stack: error.stack
       });
       
-      // Show specific error message
-      if (error.message.includes('Cannot connect')) {
-        toast.error('Cannot connect to server. Please check if backend is running.');
-      } else if (error.status === 401) {
-        toast.error('Please login to view your support tickets');
-      } else {
-        toast.error(`Failed to load support tickets: ${error.message}`);
+      // Only show error messages for non-connection issues
+      if (!error.message?.includes('Cannot connect') && !error.message?.includes('Failed to fetch')) {
+        if (error.status === 401) {
+          toast.error('Please login to view your support tickets');
+        } else {
+          toast.error(`Failed to load support tickets: ${error.message}`);
+        }
       }
       
       // Fallback to mock data for demonstration
@@ -186,9 +216,16 @@ export default function SupportHistory() {
   };
 
   const sendMessage = async (ticketId: string) => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim()) {
+      toast.error('Please enter a message');
+      return;
+    }
 
     try {
+      console.log('💬 Sending message to ticket:', ticketId);
+      console.log('💬 Message content:', newMessage.trim());
+      console.log('💬 User:', user);
+      
       const messageData = {
         ticketId,
         message: newMessage.trim(),
@@ -196,47 +233,50 @@ export default function SupportHistory() {
         senderName: user?.name || 'Customer'
       };
 
+      console.log('💬 Calling API with:', messageData);
       const response = await apiService.addTicketMessage(messageData);
+      console.log('💬 API Response:', response);
       
       // Update selected ticket with response
       if (response.ticket) {
+        console.log('💬 Updating selected ticket with new data');
         setSelectedTicket(response.ticket);
         
         // Update tickets list
         setTickets(prev => prev.map(t => 
-          t._id === ticketId ? response.ticket : t
+          t._id === response.ticket._id ? response.ticket : t
         ));
+        
+        console.log('💬 Updated ticket messages count:', response.ticket.messages?.length || 0);
+        
+        // Refresh the ticket messages to get the latest data
+        const ticketId = response.ticket.ticketId || response.ticket._id;
+        setTimeout(() => {
+          fetchTicketWithMessages(ticketId, false); // Refresh without loading state
+        }, 1000);
       }
       
       setNewMessage('');
       toast.success('Message sent successfully');
-    } catch (error) {
-      console.error('Error sending message:', error);
-      toast.error('Failed to send message');
+    } catch (error: any) {
+      console.error('❌ Error sending message:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        status: error.status,
+        ticketId,
+        messageContent: newMessage.trim()
+      });
       
-      // Fallback to mock implementation
-      const newMsg: TicketMessage = {
-        _id: `m${Date.now()}`,
-        sender: 'customer',
-        senderName: user?.name || 'Customer',
-        message: newMessage.trim(),
-        timestamp: new Date().toISOString()
-      };
-
-      if (selectedTicket) {
-        const updatedTicket = {
-          ...selectedTicket,
-          messages: [...selectedTicket.messages, newMsg],
-          updatedAt: new Date().toISOString()
-        };
-        setSelectedTicket(updatedTicket);
-        
-        setTickets(prev => prev.map(t => 
-          t._id === ticketId ? updatedTicket : t
-        ));
+      // Show specific error message based on error type
+      if (error.message?.includes('Cannot connect')) {
+        toast.error('Cannot connect to server. Please check your connection.');
+      } else if (error.status === 404) {
+        toast.error('Ticket not found or you do not have access to it');
+      } else if (error.status === 400) {
+        toast.error(error.message || 'Invalid message content');
+      } else {
+        toast.error('Failed to send message. Please try again.');
       }
-      
-      setNewMessage('');
     }
   };
 
@@ -301,11 +341,16 @@ export default function SupportHistory() {
             <p className="text-[#A08968] text-sm">Create your first ticket to get help</p>
           </div>
         ) : (
-          <div className="space-y-3 max-h-96 overflow-y-auto">
+          <div className="space-y-3 max-h-96 overflow-y-auto ticket-list">
             {tickets.map((ticket) => (
               <div
                 key={ticket._id}
-                onClick={() => setSelectedTicket(ticket)}
+                onClick={() => {
+                  setSelectedTicket(ticket);
+                  // Fetch messages when ticket is selected
+                  const ticketId = ticket.ticketId || ticket._id;
+                  fetchTicketWithMessages(ticketId, true); // Initial load with loading state
+                }}
                 className={`p-4 border-2 rounded-lg cursor-pointer transition-all hover:shadow-md ${
                   selectedTicket?._id === ticket._id
                     ? 'border-[#D4AF37] bg-[#3D2817] shadow-lg'
@@ -339,16 +384,11 @@ export default function SupportHistory() {
                   </span>
                 </div>
                 
-                {(ticket.messages.length > 0 || (adminMessages[ticket.ticketId] && adminMessages[ticket.ticketId].length > 0)) && (
+                {(ticket.messages.length > 0) && (
                   <div className="mt-2 pt-2 border-t border-[#8B6F47]/30">
                     <div className="flex items-center gap-1 text-xs text-[#D4AF37]">
                       <MessageCircle className="w-3 h-3" />
-                      {(() => {
-                        const originalCount = ticket.messages.length;
-                        const adminCount = adminMessages[ticket.ticketId]?.length || 0;
-                        const totalCount = originalCount + adminCount;
-                        return `${totalCount} message${totalCount !== 1 ? 's' : ''}`;
-                      })()}
+                      {ticket.messages.length} message{ticket.messages.length !== 1 ? 's' : ''}
                     </div>
                   </div>
                 )}
@@ -394,68 +434,54 @@ export default function SupportHistory() {
             </div>
 
             {/* Messages */}
-            <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
-              {/* Combine original ticket messages with admin messages */}
-              {(() => {
-                const originalMessages = selectedTicket.messages || [];
-                // Try both ticketId and _id as keys for admin messages
-                const adminMsgs = adminMessages[selectedTicket.ticketId] || adminMessages[selectedTicket._id] || [];
-                
-                console.log('🔍 Debug admin messages:', {
-                  ticketId: selectedTicket.ticketId,
-                  _id: selectedTicket._id,
-                  adminMessagesKeys: Object.keys(adminMessages),
-                  adminMsgsFound: adminMsgs.length,
-                  adminMsgs: adminMsgs
-                });
-                
-                // Convert admin messages to the same format
-                const convertedAdminMsgs = adminMsgs.map((msg, index) => ({
-                  _id: msg.id || `admin-${index}-${Date.now()}`,
-                  sender: 'admin' as const,
-                  senderName: msg.senderName || 'Support Team',
-                  message: msg.message,
-                  timestamp: msg.timestamp
-                }));
-                
-                // Combine and sort all messages by timestamp
-                const allMessages = [...originalMessages, ...convertedAdminMsgs]
-                  .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-                
-                console.log('🔍 All messages combined:', allMessages.length, allMessages);
-                
-                return allMessages.map((message) => (
-                  <div
-                    key={message._id}
-                    className={`flex ${message.sender === 'customer' ? 'justify-end' : 'justify-start'}`}
-                  >
+            <div className="space-y-4 mb-6 max-h-96 overflow-y-auto chat-messages">
+              {/* Only show loading on initial load */}
+              {loadingMessages && (!selectedTicket.messages || selectedTicket.messages.length === 0) ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#D4AF37] mx-auto mb-2"></div>
+                  <p className="text-[#D4C5AA] text-sm">Loading messages...</p>
+                </div>
+              ) : (
+                selectedTicket.messages && selectedTicket.messages.length > 0 ? (
+                  selectedTicket.messages.map((message) => (
                     <div
-                      className={`max-w-xs lg:max-w-md px-4 py-3 rounded-lg ${
-                        message.sender === 'customer'
-                          ? 'bg-[#D4AF37] text-[#2C1810]'
-                          : 'bg-[#3D2817] border border-[#8B6F47] text-[#F5E6D3]'
-                      }`}
+                      key={message._id}
+                      className={`flex ${message.sender === 'customer' ? 'justify-end' : 'justify-start'}`}
                     >
-                      <div className="flex items-center gap-2 mb-1">
-                        {message.sender === 'customer' ? (
-                          <User className="w-3 h-3" />
-                        ) : (
-                          <Headphones className="w-3 h-3" />
-                        )}
-                        <span className="text-xs font-semibold">
-                          {message.sender === 'customer' ? 'You' : 'Support Team'}
-                        </span>
-                        <span className={`text-xs ${
-                          message.sender === 'customer' ? 'opacity-70' : 'opacity-60'
-                        }`}>
-                          {new Date(message.timestamp).toLocaleString()}
-                        </span>
+                      <div
+                        className={`max-w-xs lg:max-w-md px-4 py-3 rounded-lg ${
+                          message.sender === 'customer'
+                            ? 'bg-[#D4AF37] text-[#2C1810]'
+                            : 'bg-[#3D2817] border border-[#8B6F47] text-[#F5E6D3]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          {message.sender === 'customer' ? (
+                            <User className="w-3 h-3" />
+                          ) : (
+                            <Headphones className="w-3 h-3" />
+                          )}
+                          <span className="text-xs font-semibold">
+                            {message.sender === 'customer' ? 'You' : 'Support Team'}
+                          </span>
+                          <span className={`text-xs ${
+                            message.sender === 'customer' ? 'opacity-70' : 'opacity-60'
+                          }`}>
+                            {new Date(message.timestamp).toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="text-sm leading-relaxed">{message.message}</p>
                       </div>
-                      <p className="text-sm leading-relaxed">{message.message}</p>
                     </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <MessageCircle className="w-12 h-12 text-[#8B6F47] mx-auto mb-3" />
+                    <p className="text-[#D4C5AA]">No messages yet</p>
+                    <p className="text-[#A08968] text-sm">Start the conversation by sending a message</p>
                   </div>
-                ));
-              })()}
+                )
+              )}
             </div>
 
             {/* Message Input */}

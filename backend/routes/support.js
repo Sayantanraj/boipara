@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const SupportTicket = require('../models/SupportTicket');
 const auth = require('../middleware/auth');
+const mongoose = require('mongoose');
 
 // Create a new support ticket
 router.post('/', auth, async (req, res) => {
@@ -131,15 +132,136 @@ router.get('/:ticketId', auth, async (req, res) => {
   }
 });
 
+// Get messages for a specific support ticket (for admin and ticket owner)
+router.get('/:ticketId/messages', auth, async (req, res) => {
+  try {
+    console.log('💬 Fetching messages for ticket:', req.params.ticketId);
+    console.log('💬 User:', req.user);
+    console.log('💬 User role:', req.user?.role);
+    
+    if (!req.user || !req.user.id) {
+      console.log('❌ User not authenticated');
+      return res.status(401).json({ message: 'User authentication required' });
+    }
+
+    // Build query based on user role
+    let query = {};
+    
+    // Check if the ticketId is a valid MongoDB ObjectId
+    const isValidObjectId = mongoose.Types.ObjectId.isValid(req.params.ticketId);
+    console.log('💬 Is valid ObjectId:', isValidObjectId);
+    
+    if (isValidObjectId) {
+      // If it's a valid ObjectId, search by _id or ticketId
+      query = {
+        $or: [
+          { _id: req.params.ticketId },
+          { ticketId: req.params.ticketId }
+        ]
+      };
+    } else {
+      // If it's not a valid ObjectId, only search by ticketId
+      query = { ticketId: req.params.ticketId };
+    }
+    
+    // If not admin, restrict to user's own tickets
+    if (req.user.role !== 'admin') {
+      query.userId = req.user.id;
+      console.log('💬 Non-admin user, restricting to own tickets');
+    } else {
+      console.log('💬 Admin user, can access all tickets');
+    }
+
+    console.log('💬 Final query:', query);
+    
+    const ticket = await SupportTicket.findOne(query);
+
+    if (!ticket) {
+      console.log('❌ Ticket not found:', req.params.ticketId);
+      console.log('❌ Query used:', query);
+      return res.status(404).json({ 
+        message: 'Support ticket not found',
+        debug: {
+          ticketId: req.params.ticketId,
+          isValidObjectId,
+          userRole: req.user.role,
+          userId: req.user.id
+        }
+      });
+    }
+
+    console.log('💬 Found ticket:', {
+      _id: ticket._id,
+      ticketId: ticket.ticketId,
+      subject: ticket.subject,
+      status: ticket.status,
+      messagesCount: ticket.messages?.length || 0,
+      userId: ticket.userId
+    });
+    
+    // Log all messages for debugging
+    if (ticket.messages && ticket.messages.length > 0) {
+      console.log('💬 All messages in ticket:');
+      ticket.messages.forEach((msg, index) => {
+        console.log(`💬 Message ${index + 1}:`, {
+          sender: msg.sender,
+          senderName: msg.senderName,
+          message: msg.message.substring(0, 50) + '...',
+          timestamp: msg.timestamp
+        });
+      });
+    } else {
+      console.log('💬 No messages found in ticket');
+    }
+
+    res.json({
+      message: 'Ticket messages retrieved successfully',
+      ticket: {
+        _id: ticket._id,
+        ticketId: ticket.ticketId,
+        subject: ticket.subject,
+        status: ticket.status,
+        customerName: ticket.customerName,
+        customerEmail: ticket.customerEmail,
+        description: ticket.description,
+        priority: ticket.priority,
+        createdAt: ticket.createdAt,
+        updatedAt: ticket.updatedAt,
+        messages: ticket.messages || []
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error fetching ticket messages:', error);
+    console.error('❌ Error stack:', error.stack);
+    res.status(500).json({ 
+      message: 'Failed to fetch ticket messages', 
+      error: error.message,
+      debug: {
+        ticketId: req.params.ticketId,
+        userRole: req.user?.role,
+        userId: req.user?.id
+      }
+    });
+  }
+});
+
 // Add a message to a support ticket
 router.post('/:ticketId/messages', auth, async (req, res) => {
   try {
+    console.log('💬 Adding message to ticket:', req.params.ticketId);
+    console.log('💬 User:', req.user);
+    console.log('💬 Request body:', req.body);
+    
     const { message } = req.body;
     
     if (!message || !message.trim()) {
+      console.log('❌ Message content is empty');
       return res.status(400).json({ message: 'Message content is required' });
     }
 
+    console.log('💬 Looking for ticket with ID:', req.params.ticketId);
+    console.log('💬 User ID:', req.user.id);
+    
     const ticket = await SupportTicket.findOne({
       $or: [
         { ticketId: req.params.ticketId },
@@ -148,20 +270,32 @@ router.post('/:ticketId/messages', auth, async (req, res) => {
       userId: req.user.id
     });
 
+    console.log('💬 Found ticket:', ticket ? {
+      _id: ticket._id,
+      ticketId: ticket.ticketId,
+      userId: ticket.userId,
+      status: ticket.status,
+      messagesCount: ticket.messages?.length || 0
+    } : 'null');
+
     if (!ticket) {
+      console.log('❌ Ticket not found for user:', req.user.id);
       return res.status(404).json({ message: 'Support ticket not found' });
     }
 
     if (ticket.status === 'Closed') {
+      console.log('❌ Ticket is closed');
       return res.status(400).json({ message: 'Cannot add messages to a closed ticket' });
     }
 
     const newMessage = {
       sender: 'customer',
-      senderName: req.user.name,
+      senderName: req.user.name || 'Customer',
       message: message.trim(),
       timestamp: new Date()
     };
+
+    console.log('💬 Adding new message:', newMessage);
 
     ticket.messages.push(newMessage);
     ticket.updatedAt = new Date();
@@ -169,17 +303,21 @@ router.post('/:ticketId/messages', auth, async (req, res) => {
     // If ticket was resolved, change back to in progress
     if (ticket.status === 'Resolved') {
       ticket.status = 'In Progress';
+      console.log('💬 Changed ticket status from Resolved to In Progress');
     }
 
+    console.log('💬 Saving ticket with', ticket.messages.length, 'messages');
     await ticket.save();
+    console.log('✅ Message added successfully');
 
     res.json({
       message: 'Message added successfully',
       ticket
     });
   } catch (error) {
-    console.error('Error adding message to ticket:', error);
-    res.status(500).json({ message: 'Failed to add message' });
+    console.error('❌ Error adding message to ticket:', error);
+    console.error('❌ Error stack:', error.stack);
+    res.status(500).json({ message: 'Failed to add message', error: error.message });
   }
 });
 
@@ -266,27 +404,59 @@ router.patch('/:ticketId/status', auth, async (req, res) => {
 // Admin: Add message to any ticket
 router.post('/:ticketId/admin-message', auth, async (req, res) => {
   try {
+    console.log('💬 Admin adding message to ticket:', req.params.ticketId);
+    console.log('💬 User:', req.user);
+    console.log('💬 Request body:', req.body);
+    
     // Check if user is admin
     if (req.user.role !== 'admin') {
+      console.log('❌ Access denied - not admin');
       return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
     }
 
     const { message } = req.body;
     
     if (!message || !message.trim()) {
+      console.log('❌ Message content is empty');
       return res.status(400).json({ message: 'Message content is required' });
     }
 
-    const ticket = await SupportTicket.findOne({
-      $or: [
-        { ticketId: req.params.ticketId },
-        { _id: req.params.ticketId }
-      ]
-    });
+    // Build query to find ticket by _id or ticketId
+    let query = {};
+    const isValidObjectId = mongoose.Types.ObjectId.isValid(req.params.ticketId);
+    
+    if (isValidObjectId) {
+      query = {
+        $or: [
+          { _id: req.params.ticketId },
+          { ticketId: req.params.ticketId }
+        ]
+      };
+    } else {
+      query = { ticketId: req.params.ticketId };
+    }
+
+    console.log('💬 Admin searching for ticket with query:', query);
+    const ticket = await SupportTicket.findOne(query);
 
     if (!ticket) {
-      return res.status(404).json({ message: 'Support ticket not found' });
+      console.log('❌ Ticket not found:', req.params.ticketId);
+      return res.status(404).json({ 
+        message: 'Support ticket not found',
+        debug: {
+          ticketId: req.params.ticketId,
+          isValidObjectId,
+          query
+        }
+      });
     }
+
+    console.log('💬 Admin found ticket:', {
+      _id: ticket._id,
+      ticketId: ticket.ticketId,
+      subject: ticket.subject,
+      messagesCount: ticket.messages?.length || 0
+    });
 
     const newMessage = {
       sender: 'admin',
@@ -295,23 +465,31 @@ router.post('/:ticketId/admin-message', auth, async (req, res) => {
       timestamp: new Date()
     };
 
+    console.log('💬 Admin adding message:', newMessage);
+
     ticket.messages.push(newMessage);
     ticket.updatedAt = new Date();
     
     // Update status to In Progress if it was Open
     if (ticket.status === 'Open') {
       ticket.status = 'In Progress';
+      console.log('💬 Changed ticket status from Open to In Progress');
     }
 
     await ticket.save();
+    console.log('✅ Admin message added successfully');
 
     res.json({
       message: 'Admin message added successfully',
       ticket
     });
   } catch (error) {
-    console.error('Error adding admin message:', error);
-    res.status(500).json({ message: 'Failed to add admin message' });
+    console.error('❌ Error adding admin message:', error);
+    console.error('❌ Error stack:', error.stack);
+    res.status(500).json({ 
+      message: 'Failed to add admin message', 
+      error: error.message 
+    });
   }
 });
 

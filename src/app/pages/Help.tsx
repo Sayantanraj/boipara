@@ -31,7 +31,7 @@ export function Help() {
   };
 
   return (
-    <div className="min-h-screen bg-[#1A0F08]">
+    <div className="min-h-screen bg-[#1A0F08] overflow-x-hidden">
       {/* Header */}
       <div className="bg-[#2C1810] border-b-2 border-[#8B6F47]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -55,11 +55,11 @@ export function Help() {
 
       {/* Tabs */}
       <div className="bg-[#2C1810] border-b-2 border-[#8B6F47]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex gap-1">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 xl:px-8">
+          <div className="grid grid-cols-4 gap-0">
             <button
               onClick={() => setActiveTab('faq')}
-              className={`px-6 py-4 text-sm font-medium transition-colors border-b-2 ${
+              className={`flex-1 px-2 sm:px-4 lg:px-6 py-3 sm:py-4 text-xs sm:text-sm lg:text-base font-medium transition-colors border-b-2 whitespace-nowrap text-center ${
                 activeTab === 'faq'
                   ? 'text-[#D4AF37] border-[#D4AF37] bg-[#3D2817]'
                   : 'text-[#A08968] border-transparent hover:text-[#F5E6D3] hover:bg-[#3D2817]/50'
@@ -69,7 +69,7 @@ export function Help() {
             </button>
             <button
               onClick={() => setActiveTab('contact')}
-              className={`px-6 py-4 text-sm font-medium transition-colors border-b-2 ${
+              className={`flex-1 px-2 sm:px-4 lg:px-6 py-3 sm:py-4 text-xs sm:text-sm lg:text-base font-medium transition-colors border-b-2 whitespace-nowrap text-center ${
                 activeTab === 'contact'
                   ? 'text-[#D4AF37] border-[#D4AF37] bg-[#3D2817]'
                   : 'text-[#A08968] border-transparent hover:text-[#F5E6D3] hover:bg-[#3D2817]/50'
@@ -79,17 +79,18 @@ export function Help() {
             </button>
             <button
               onClick={() => setActiveTab('support')}
-              className={`px-6 py-4 text-sm font-medium transition-colors border-b-2 ${
+              className={`flex-1 px-1 sm:px-2 lg:px-4 py-3 sm:py-4 text-xs sm:text-sm lg:text-base font-medium transition-colors border-b-2 whitespace-nowrap text-center ${
                 activeTab === 'support'
                   ? 'text-[#D4AF37] border-[#D4AF37] bg-[#3D2817]'
                   : 'text-[#A08968] border-transparent hover:text-[#F5E6D3] hover:bg-[#3D2817]/50'
               }`}
             >
-              Support Ticket
+              <span className="hidden sm:inline">Support</span>
+              <span className="sm:hidden">Ticket</span>
             </button>
             <button
               onClick={() => setActiveTab('history')}
-              className={`px-6 py-4 text-sm font-medium transition-colors border-b-2 ${
+              className={`flex-1 px-2 sm:px-4 lg:px-6 py-3 sm:py-4 text-xs sm:text-sm lg:text-base font-medium transition-colors border-b-2 whitespace-nowrap text-center ${
                 activeTab === 'history'
                   ? 'text-[#D4AF37] border-[#D4AF37] bg-[#3D2817]'
                   : 'text-[#A08968] border-transparent hover:text-[#F5E6D3] hover:bg-[#3D2817]/50'
@@ -102,13 +103,13 @@ export function Help() {
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-full max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8">
         {/* FAQ Tab */}
         {activeTab === 'faq' && (
-          <div className="max-w-4xl mx-auto">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-[#F5E6D3] mb-2">Frequently Asked Questions</h2>
-              <p className="text-[#D4C5AA]">Find answers to common questions about BOI PARA</p>
+          <div className="w-full max-w-4xl mx-auto">
+            <div className="mb-4 sm:mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-[#F5E6D3] mb-2">Frequently Asked Questions</h2>
+              <p className="text-sm sm:text-base text-[#D4C5AA]">Find answers to common questions about BOI PARA</p>
             </div>
 
             {/* Role Badge */}
@@ -317,13 +318,13 @@ export function Help() {
 
         {/* Contact Tab */}
         {activeTab === 'contact' && (
-          <div className="max-w-4xl mx-auto">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-[#F5E6D3] mb-2">Get in Touch</h2>
-              <p className="text-[#D4C5AA]">Multiple ways to reach our support team</p>
+          <div className="w-full max-w-4xl mx-auto">
+            <div className="mb-4 sm:mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-[#F5E6D3] mb-2">Get in Touch</h2>
+              <p className="text-sm sm:text-base text-[#D4C5AA]">Multiple ways to reach our support team</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
               {/* Email Support */}
               <div className="bg-[#2C1810] border-2 border-[#8B6F47] rounded-lg p-4 sm:p-6 hover:border-[#D4AF37] transition-colors">
                 <div className="flex items-start gap-3 sm:gap-4">
@@ -405,10 +406,10 @@ export function Help() {
 
         {/* Support Ticket Tab */}
         {activeTab === 'support' && (
-          <div className="max-w-2xl mx-auto">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-[#F5E6D3] mb-2">Submit a Support Ticket</h2>
-              <p className="text-[#D4C5AA]">Fill out the form below and we'll get back to you soon</p>
+          <div className="w-full max-w-2xl mx-auto">
+            <div className="mb-4 sm:mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-[#F5E6D3] mb-2">Submit a Support Ticket</h2>
+              <p className="text-sm sm:text-base text-[#D4C5AA]">Fill out the form below and we'll get back to you soon</p>
             </div>
 
             {/* Role Badge for logged in users */}
@@ -459,7 +460,7 @@ export function Help() {
                   toast.error('Please fill in all fields');
                 }
               }}
-              className="bg-[#2C1810] border-2 border-[#8B6F47] rounded-lg p-6 space-y-6"
+              className="w-full bg-[#2C1810] border-2 border-[#8B6F47] rounded-lg p-4 sm:p-6 space-y-4 sm:space-y-6"
             >
               <div>
                 <label className="block text-sm font-medium text-[#F5E6D3] mb-2">
