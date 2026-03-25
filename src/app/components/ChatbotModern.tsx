@@ -979,7 +979,7 @@ Respond as BOIPARA AI Assistant using the real-time database data above.`;
       {isOpen && (
         <div 
           ref={chatContainerRef}
-          className="fixed bottom-8 right-8 z-50 md:w-[380px] md:h-[600px] w-[calc(100vw-32px)] h-[calc(100vh-100px)] max-w-[380px] max-h-[600px]"
+          className="fixed md:bottom-8 md:right-8 md:left-auto bottom-4 left-1/2 md:left-auto md:right-8 md:transform-none transform -translate-x-1/2 md:translate-x-0 z-50 md:w-[380px] md:h-[600px] w-[calc(100vw-32px)] h-[calc(100vh-120px)] max-w-[380px] max-h-[600px]"
           style={{
             background: '#3D2817',
             backdropFilter: 'blur(20px)',
