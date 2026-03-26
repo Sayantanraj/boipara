@@ -173,10 +173,59 @@ class ApiService {
     });
   }
 
-  // Books
+  // Books with pagination and optimization
   async getBooks(params: any = {}) {
+    // Add default pagination and limits for better performance
+    const optimizedParams = {
+      limit: 20, // Default limit to reduce initial load
+      page: 1,   // Default page
+      ...params
+    };
+    
+    const query = new URLSearchParams(optimizedParams).toString();
+    console.log('📚 API: Fetching books with params:', optimizedParams);
+    
+    try {
+      const response = await this.request(`/books?${query}`);
+      console.log('📚 API: Books response received, count:', response.books?.length || 0);
+      return response;
+    } catch (error) {
+      console.error('📚 API Error - getBooks:', error);
+      return { books: [], total: 0, page: 1, totalPages: 1 };
+    }
+  }
+
+  // Fast initial books load (minimal data)
+  async getBooksInitial(limit: number = 12) {
+    console.log('⚡ API: Fast initial books load, limit:', limit);
+    try {
+      const response = await this.request(`/books?limit=${limit}&fields=title,author,price,imageUrl,_id,condition,rating`);
+      console.log('⚡ API: Initial books loaded:', response.books?.length || 0);
+      return response;
+    } catch (error) {
+      console.error('⚡ API Error - getBooksInitial:', error);
+      return { books: [], total: 0 };
+    }
+  }
+
+  // Load more books (pagination)
+  async getMoreBooks(page: number, limit: number = 20, filters: any = {}) {
+    const params = {
+      page,
+      limit,
+      ...filters
+    };
     const query = new URLSearchParams(params).toString();
-    return this.request(`/books?${query}`);
+    console.log('📖 API: Loading more books, page:', page, 'limit:', limit);
+    
+    try {
+      const response = await this.request(`/books?${query}`);
+      console.log('📖 API: More books loaded:', response.books?.length || 0);
+      return response;
+    } catch (error) {
+      console.error('📖 API Error - getMoreBooks:', error);
+      return { books: [], total: 0, page, totalPages: 1 };
+    }
   }
 
   async getBook(id: string) {

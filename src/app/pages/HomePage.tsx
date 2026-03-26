@@ -1,18 +1,25 @@
-import Slider from 'react-slick';
-import 'slick-carousel/slick/slick.css';
-import 'slick-carousel/slick/slick-theme.css';
 import { Navbar } from '../components/Navbar';
 import { ProductCard } from '../components/ProductCard';
-import { SellerCard } from '../components/SellerCard';
+import { BookSkeletonGrid } from '../components/BookSkeleton';
 import type { Book } from '../types';
 import { mockSellers, quickCategories } from '../data/mockData';
 import { ArrowRight, Shield, RefreshCw, Truck, Award, MapPin, BookOpen, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
 import { apiService } from '../../services/api';
 import { useRealTime } from '../../hooks/useRealTime';
+
+// Lazy load heavy components
+const Slider = lazy(() => import('react-slick'));
+const SellerCard = lazy(() => import('../components/SellerCard').then(m => ({ default: m.SellerCard })));
+
+// Lazy load CSS for slider (only when needed)
+const loadSliderCSS = () => {
+  import('slick-carousel/slick/slick.css');
+  import('slick-carousel/slick/slick-theme.css');
+};
 
 export function HomePage() {
   const { user, logout, notifications, markNotificationRead, markAllNotificationsRead, deleteNotification } = useAuth();
@@ -23,30 +30,47 @@ export function HomePage() {
   const [loading, setLoading] = useState(true);
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [bestsellers, setBestsellers] = useState<Book[]>([]);
+  const [sliderReady, setSliderReady] = useState(false);
 
+  // Load critical data first (bestsellers for immediate display)
   useEffect(() => {
-    const loadBooks = async () => {
+    const loadCriticalData = async () => {
       try {
-        const data = await apiService.getBooks();
-        setBooks(data.books || []);
+        // Load bestsellers first (most important for user)
+        const bestsellerData = await apiService.getBestsellers();
+        setBestsellers(bestsellerData || []);
+        setLoading(false); // Show bestsellers immediately
+        
+        // Load slider CSS and enable slider after critical content
+        setTimeout(() => {
+          loadSliderCSS();
+          setSliderReady(true);
+        }, 100);
+        
       } catch (error) {
-        console.error('Error loading books:', error);
-      } finally {
+        console.error('Error loading critical data:', error);
         setLoading(false);
       }
     };
 
-    const loadBestsellers = async () => {
+    loadCriticalData();
+  }, []);
+
+  // Load remaining data in background with optimization
+  useEffect(() => {
+    const loadRemainingData = async () => {
       try {
-        const data = await apiService.getBestsellers();
-        setBestsellers(data || []);
+        // Load initial books fast (only essential fields)
+        const data = await apiService.getBooksInitial(50); // Load 50 books initially
+        setBooks(data.books || []);
       } catch (error) {
-        console.error('Error loading bestsellers:', error);
+        console.error('Error loading remaining books:', error);
       }
     };
 
-    loadBooks();
-    loadBestsellers();
+    // Delay non-critical data loading
+    const timer = setTimeout(loadRemainingData, 500);
+    return () => clearTimeout(timer);
   }, []);
 
   const carouselSettings = {
@@ -93,10 +117,19 @@ export function HomePage() {
         onDeleteNotification={deleteNotification}
       />
 
-      {/* Hero Carousel */}
+      {/* Hero Carousel - Lazy Loaded */}
       <div className="bg-[#2C1810]">
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8">
-          <Slider {...carouselSettings}>
+          {sliderReady ? (
+            <Suspense fallback={
+              <div className="h-[400px] sm:h-[500px] bg-gradient-to-r from-[#2C1810] to-[#3D2817] flex items-center justify-center">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#D4AF37] mx-auto mb-4"></div>
+                  <p className="text-[#D4AF37] text-sm">Loading carousel...</p>
+                </div>
+              </div>
+            }>
+              <Slider {...carouselSettings}>
             {/* Slide 1 - Welcome */}
             <div>
               <div className="relative h-[400px] sm:h-[500px] overflow-hidden">
@@ -213,7 +246,46 @@ export function HomePage() {
                 </div>
               </div>
             </div>
-          </Slider>
+              </Slider>
+            </Suspense>
+          ) : (
+            // Static hero content while slider loads
+            <div className="relative h-[400px] sm:h-[500px] overflow-hidden">
+              <img
+                src="https://images.unsplash.com/photo-1689710214746-c0094c4bac56?w=1920"
+                alt="College Street Bookstores"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#2C1810]/95 via-[#2C1810]/70 to-transparent"></div>
+              <div className="absolute inset-0 flex items-center">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full">
+                  <div className="max-w-2xl">
+                    <div className="mb-4 inline-block">
+                      <span className="bg-[#D4AF37] text-[#2C1810] px-4 py-2 rounded font-bold text-sm shadow-lg flex items-center gap-2">
+                        <Sparkles className="size-4" />
+                        Welcome to BOI PARA
+                      </span>
+                    </div>
+                    <h2 className="text-4xl sm:text-6xl font-bold mb-4 text-[#F5E6D3] leading-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
+                      From College Street
+                      <br />
+                      <span className="text-[#D4AF37]">to Your Doorstep</span>
+                    </h2>
+                    <p className="text-lg sm:text-xl mb-8 text-[#D4C5AA] leading-relaxed">
+                      Authentic books from trusted Kolkata sellers
+                    </p>
+                    <Link
+                      to="/browse"
+                      className="inline-flex items-center gap-2 bg-gradient-to-r from-[#8B6F47] to-[#6B5537] hover:from-[#D4AF37] hover:to-[#B8941F] text-[#F5E6D3] font-bold px-6 sm:px-8 py-3 sm:py-4 rounded-md shadow-xl transition-all duration-300 border-2 border-[#D4AF37]/30"
+                    >
+                      Explore Books
+                      <ArrowRight className="size-5" />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -281,15 +353,7 @@ export function HomePage() {
             </Link>
           </div>
           {loading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="bg-[#3D2817] rounded-lg p-4 animate-pulse">
-                  <div className="bg-[#8B6F47] h-32 rounded mb-2"></div>
-                  <div className="bg-[#8B6F47] h-4 rounded mb-1"></div>
-                  <div className="bg-[#8B6F47] h-4 rounded w-3/4"></div>
-                </div>
-              ))}
-            </div>
+            <BookSkeletonGrid count={6} />
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3 auto-rows-fr">
               {bestsellers.map(book => (

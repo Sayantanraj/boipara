@@ -67,9 +67,13 @@ export function BrowsePage() {
   const [sortBy, setSortBy] = useState('popularity');
   const [showFilters, setShowFilters] = useState(false);
   
-  // Load books from API
+  // Load books from API with pagination
   const [allBooks, setAllBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [hasMoreBooks, setHasMoreBooks] = useState(true);
 
   // Get URL parameters
   const searchQuery = searchParams.get('search') || '';
@@ -77,16 +81,27 @@ export function BrowsePage() {
   const bestsellersParam = searchParams.get('bestsellers');
   const sellerParam = searchParams.get('seller');
 
-  const loadBooks = async () => {
+  const loadBooks = async (resetBooks = false) => {
     try {
-      setLoading(true);
+      if (resetBooks) {
+        setLoading(true);
+        setCurrentPage(1);
+        setAllBooks([]);
+      }
+      
+      const pageToLoad = resetBooks ? 1 : currentPage;
       
       // If bestsellers parameter is present, fetch from bestsellers endpoint
       if (bestsellersParam) {
         const data = await apiService.getBestsellers();
         setAllBooks(data || []);
+        setHasMoreBooks(false);
       } else {
-        const params: any = {};
+        const params: any = {
+          page: pageToLoad,
+          limit: 20 // Load 20 books at a time
+        };
+        
         // Use categoryParam from URL if present, otherwise use selectedCategory
         const activeCategory = categoryParam || selectedCategory;
         if (activeCategory && activeCategory !== 'all') params.category = activeCategory;
@@ -96,19 +111,96 @@ export function BrowsePage() {
         if (searchQuery) params.search = searchQuery;
         
         const data = await apiService.getBooks(params);
-        setAllBooks(data.books || []);
+        const newBooks = data.books || [];
+        
+        if (resetBooks) {
+          setAllBooks(newBooks);
+        } else {
+          setAllBooks(prev => [...prev, ...newBooks]);
+        }
+        
+        setTotalPages(data.totalPages || 1);
+        setHasMoreBooks(pageToLoad < (data.totalPages || 1));
+        
+        if (!resetBooks) {
+          setCurrentPage(prev => prev + 1);
+        }
       }
     } catch (error) {
       console.error('Error loading books:', error);
+      if (resetBooks) {
+        setAllBooks([]);
+      }
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  // Load initial books fast
+  const loadInitialBooks = async () => {
+    try {
+      setLoading(true);
+      
+      if (bestsellersParam) {
+        const data = await apiService.getBestsellers();
+        setAllBooks(data || []);
+        setHasMoreBooks(false);
+      } else {
+        // Load first 12 books quickly with minimal data
+        const data = await apiService.getBooksInitial(12);
+        setAllBooks(data.books || []);
+        setHasMoreBooks((data.books?.length || 0) >= 12);
+        setCurrentPage(2); // Next page will be 2
+      }
+    } catch (error) {
+      console.error('Error loading initial books:', error);
       setAllBooks([]);
     } finally {
       setLoading(false);
     }
   };
 
+  // Load more books
+  const loadMoreBooks = async () => {
+    if (loadingMore || !hasMoreBooks) return;
+    
+    try {
+      setLoadingMore(true);
+      
+      const params: any = {};
+      const activeCategory = categoryParam || selectedCategory;
+      if (activeCategory && activeCategory !== 'all') params.category = activeCategory;
+      if (selectedCondition !== 'all') params.condition = selectedCondition;
+      if (priceRange[0] > 0) params.minPrice = priceRange[0];
+      if (priceRange[1] < 2000) params.maxPrice = priceRange[1];
+      if (searchQuery) params.search = searchQuery;
+      
+      const data = await apiService.getMoreBooks(currentPage, 20, params);
+      const newBooks = data.books || [];
+      
+      setAllBooks(prev => [...prev, ...newBooks]);
+      setCurrentPage(prev => prev + 1);
+      setHasMoreBooks(currentPage < (data.totalPages || 1));
+    } catch (error) {
+      console.error('Error loading more books:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
   useEffect(() => {
-    loadBooks();
-  }, [selectedCategory, selectedCondition, priceRange, searchQuery, bestsellersParam, categoryParam]);
+    // Load initial books fast on first load
+    loadInitialBooks();
+  }, [bestsellersParam]);
+
+  useEffect(() => {
+    // Reset and reload when filters change
+    if (selectedCategory !== 'all' || selectedCondition !== 'all' || 
+        priceRange[0] > 0 || priceRange[1] < 2000 || searchQuery || categoryParam) {
+      loadBooks(true); // Reset books and load with filters
+    }
+  }, [selectedCategory, selectedCondition, priceRange, searchQuery, categoryParam]);
 
   useEffect(() => {
     if (categoryParam) {
@@ -380,17 +472,52 @@ export function BrowsePage() {
                 ))}
               </div>
             ) : filteredBooks.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-                {filteredBooks.map(book => (
-                  <ProductCard 
-                    key={(book as any)._id || book.id} 
-                    book={book} 
-                    onAddToCart={handleAddToCart}
-                    onToggleWishlist={onToggleWishlist}
-                    isWishlisted={wishlist.includes((book as any)._id || book.id)}
-                  />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+                  {filteredBooks.map(book => (
+                    <ProductCard 
+                      key={(book as any)._id || book.id} 
+                      book={book} 
+                      onAddToCart={handleAddToCart}
+                      onToggleWishlist={onToggleWishlist}
+                      isWishlisted={wishlist.includes((book as any)._id || book.id)}
+                    />
+                  ))}
+                </div>
+                
+                {/* Load More Button */}
+                {hasMoreBooks && (
+                  <div className="flex justify-center mt-8">
+                    <button
+                      onClick={loadMoreBooks}
+                      disabled={loadingMore}
+                      className="bg-gradient-to-r from-[#8B6F47] to-[#6B5537] hover:from-[#D4AF37] hover:to-[#B8941F] text-[#F5E6D3] font-bold px-8 py-3 rounded-md transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {loadingMore ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#F5E6D3]"></div>
+                          Loading More...
+                        </>
+                      ) : (
+                        'Load More Books'
+                      )}
+                    </button>
+                  </div>
+                )}
+                
+                {/* Loading More Indicator */}
+                {loadingMore && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 mt-6">
+                    {[...Array(4)].map((_, i) => (
+                      <div key={i} className="bg-[#3D2817] rounded-lg p-4 animate-pulse">
+                        <div className="bg-[#8B6F47] h-48 rounded mb-4"></div>
+                        <div className="bg-[#8B6F47] h-4 rounded mb-2"></div>
+                        <div className="bg-[#8B6F47] h-4 rounded w-3/4"></div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
             ) : (
               <div className="bg-[#3D2817] rounded-lg p-12 text-center shadow-xl border-2 border-[#8B6F47]">
                 <div className="text-6xl mb-4">📚</div>
