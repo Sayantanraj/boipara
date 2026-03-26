@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Send, Paperclip } from 'lucide-react';
+import { X, Send, Paperclip, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiService } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -8,10 +8,109 @@ import chatbotLogo from '../../assets/chatbot_logo1.png';
 
 // Add Google Font import for Bitcount Grid Double Ink, Lexend, and Momo Signature
 const fontLink = document.createElement('link');
-fontLink.href = 'https://fonts.googleapis.com/css2?family=Bitcount+Grid+Double+Ink:wght@100..900&family=Lexend:wght@100..900&family=Momo+Signature&display=swap';
+fontLink.href = 'https://fonts.googleapis.com/css2?family=Bitcount+Grid+Double+Ink:wght@100..900&family=Lexend:wght@100..900&family=Momo+Signature&family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@300;400;500&display=swap';
 fontLink.rel = 'stylesheet';
 if (!document.head.querySelector(`link[href="${fontLink.href}"]`)) {
   document.head.appendChild(fontLink);
+}
+
+// Add marked.js and highlight.js libraries
+const markedScript = document.createElement('script');
+markedScript.src = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
+markedScript.async = true;
+if (!document.head.querySelector('script[src*="marked"]')) {
+  document.head.appendChild(markedScript);
+}
+
+const highlightCSS = document.createElement('link');
+highlightCSS.rel = 'stylesheet';
+highlightCSS.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css';
+if (!document.head.querySelector('link[href*="highlight.js"]')) {
+  document.head.appendChild(highlightCSS);
+}
+
+const highlightScript = document.createElement('script');
+highlightScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js';
+highlightScript.async = true;
+if (!document.head.querySelector('script[src*="highlight.min.js"]')) {
+  document.head.appendChild(highlightScript);
+}
+
+// Add custom styles for markdown formatting
+const customStyles = document.createElement('style');
+customStyles.textContent = `
+  .bot-message {
+    font-family: 'Inter', sans-serif;
+    line-height: 1.6;
+  }
+  
+  .bot-message pre {
+    background: #1e1e1e !important;
+    color: #d4d4d4 !important;
+    padding: 12px !important;
+    border-radius: 8px !important;
+    overflow-x: auto !important;
+    margin: 10px 0 !important;
+    position: relative;
+  }
+  
+  .bot-message code {
+    font-family: 'Fira Code', monospace !important;
+    font-size: 0.9em !important;
+  }
+  
+  .bot-message p {
+    margin-bottom: 1rem;
+  }
+  
+  .bot-message h1, .bot-message h2, .bot-message h3 {
+    margin: 1.5rem 0 1rem 0;
+    font-weight: 600;
+  }
+  
+  .bot-message ul, .bot-message ol {
+    margin: 1rem 0;
+    padding-left: 1.5rem;
+  }
+  
+  .bot-message li {
+    margin-bottom: 0.5rem;
+  }
+  
+  .bot-message blockquote {
+    border-left: 4px solid #d4a017;
+    padding-left: 1rem;
+    margin: 1rem 0;
+    font-style: italic;
+    opacity: 0.9;
+  }
+  
+  .copy-button {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(212, 160, 23, 0.8);
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    color: white;
+    font-size: 12px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .bot-message pre:hover .copy-button {
+    opacity: 1;
+  }
+  
+  .copy-button:hover {
+    background: rgba(212, 160, 23, 1);
+  }
+`;
+if (!document.head.querySelector('style[data-chatbot-styles]')) {
+  customStyles.setAttribute('data-chatbot-styles', 'true');
+  document.head.appendChild(customStyles);
 }
 
 interface Message {
@@ -35,7 +134,7 @@ export function ChatbotModern() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
-      text: `Hi! I'm your Gemini-powered assistant.<br/>How can I help you navigate our library today?`,
+      text: `Hi! I'm your BOIPARA AI Assistant, trained specifically on our bookstore data.<br/>I can help you with books, orders, and everything about BOIPARA!<br/><br/>🔒 <strong>Privacy Protected:</strong> I only access your order history and book preferences - never passwords or sensitive data.`,
       isUser: false,
       timestamp: 'Just now'
     }
@@ -59,6 +158,56 @@ export function ChatbotModern() {
     paymentMethod: ''
   });
 
+  // Format bot response with markdown
+  const formatBotResponse = (rawText: string): string => {
+    try {
+      // Check if marked is available
+      if (typeof window !== 'undefined' && (window as any).marked) {
+        const htmlOutput = (window as any).marked.parse(rawText);
+        return htmlOutput;
+      }
+      // Fallback: basic formatting
+      return rawText
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/`(.*?)`/g, '<code style="background: rgba(212, 160, 23, 0.1); padding: 2px 4px; border-radius: 3px; font-family: \'Fira Code\', monospace;">$1</code>')
+        .replace(/\n/g, '<br/>');
+    } catch (error) {
+      console.error('Error formatting markdown:', error);
+      return rawText.replace(/\n/g, '<br/>');
+    }
+  };
+
+  // Add copy functionality for code blocks
+  const addCopyButtons = (element: HTMLElement) => {
+    const codeBlocks = element.querySelectorAll('pre');
+    codeBlocks.forEach((block) => {
+      if (!block.querySelector('.copy-button')) {
+        const copyButton = document.createElement('button');
+        copyButton.className = 'copy-button';
+        copyButton.innerHTML = 'Copy';
+        copyButton.onclick = () => {
+          const code = block.querySelector('code')?.textContent || block.textContent || '';
+          navigator.clipboard.writeText(code).then(() => {
+            copyButton.innerHTML = 'Copied!';
+            setTimeout(() => {
+              copyButton.innerHTML = 'Copy';
+            }, 2000);
+          });
+        };
+        block.style.position = 'relative';
+        block.appendChild(copyButton);
+      }
+    });
+  };
+
+  // Trigger syntax highlighting
+  const highlightCode = () => {
+    if (typeof window !== 'undefined' && (window as any).hljs) {
+      (window as any).hljs.highlightAll();
+    }
+  };
+
   const scrollToBottom = () => {
     if (chatContentRef.current) {
       chatContentRef.current.scrollTop = chatContentRef.current.scrollHeight;
@@ -67,6 +216,22 @@ export function ChatbotModern() {
 
   useEffect(() => {
     scrollToBottom();
+  }, [messages, isTyping]);
+
+  // Enhanced useEffect for markdown processing
+  useEffect(() => {
+    scrollToBottom();
+    
+    // Add copy buttons and highlight code after messages update
+    setTimeout(() => {
+      if (chatContentRef.current) {
+        const botMessages = chatContentRef.current.querySelectorAll('.bot-message');
+        botMessages.forEach((message) => {
+          addCopyButtons(message as HTMLElement);
+        });
+        highlightCode();
+      }
+    }, 100);
   }, [messages, isTyping]);
 
   // Close chatbot when clicking outside
@@ -109,45 +274,116 @@ export function ChatbotModern() {
         return followUpResponse;
       }
       
-      // Get comprehensive database context
-      let contextData = await getDatabaseContext(userMessage);
+      // Get comprehensive BOIPARA database context with role-based filtering
+      let boiparaContext = await getBoiparaProjectContext(userMessage);
       
       // Check for specific book searches
       const bookSearchResult = await searchSpecificBooks(userMessage);
       if (bookSearchResult) {
-        contextData += ` ${bookSearchResult}`;
+        boiparaContext += ` ${bookSearchResult}`;
       }
       
-      const prompt = `You are BOIPARA AI Assistant, a helpful chatbot for an online bookstore called "BOIPARA" that specializes in books from College Street, Kolkata.
+      // Role-based system prompt
+      const isCustomer = !user || user.role === 'customer';
+      const isAdmin = user && user.role === 'admin';
+      const isSeller = user && user.role === 'seller';
+      
+      let roleContext = '';
+      if (isAdmin) {
+        roleContext = 'You are responding to an ADMIN user. Provide comprehensive system information including user management, seller details, order analytics, returns, buyback data, and full database statistics.';
+      } else if (isSeller) {
+        roleContext = 'You are responding to a SELLER user. Provide seller-relevant information including inventory management, order processing, and sales analytics.';
+      } else {
+        roleContext = 'You are responding to a CUSTOMER. Only provide customer-relevant information.';
+      }
+      
+      const prompt = `You are BOIPARA AI Assistant (Genio AI), an intelligent chatbot trained specifically on the BOIPARA online bookstore project.
 
-Context about BOIPARA:
-- We sell new and used books, especially academic textbooks
-- We have Engineering, Medical, Literature, and Rare & Vintage collections
-- We offer book buyback services
-- Free delivery across India (3-5 business days)
-- Order IDs format: BOI + date + number (e.g., BOI120320261)
-- 7-day return policy
-- Price range: ₹200-₹2000 for most textbooks
-- Contact: support@boipara.com, +91-9876543210
+${roleContext}
+
+IMPORTANT TRAINING GUIDELINES:
+- You ONLY provide information about BOIPARA project and its features
+- You fetch ALL information from the BOIPARA database (books, orders, categories, etc.)
+- You DO NOT provide any private/sensitive information (user passwords, API keys, etc.)
+- You DO NOT discuss other companies, competitors, or unrelated topics
+- You focus ONLY on helping with BOIPARA services
+- **ALWAYS respond using Markdown formatting**
+- **For code snippets, always use triple backticks with the language name (e.g., \`\`\`python)**
+- Use **bold** for emphasis, *italics* for subtle emphasis
+- Use bullet points and numbered lists for better readability
+- Use headers (##) for section organization when appropriate
+
+${isCustomer ? `
+CUSTOMER-ONLY RESTRICTIONS:
+- DO NOT mention admin panel, admin dashboard, or admin features
+- DO NOT discuss seller management, seller onboarding, or seller tools
+- DO NOT provide backend technical details, database schemas, or API information
+- DO NOT mention user roles, permissions, or access levels
+- DO NOT discuss system administration, server management, or technical infrastructure
+- FOCUS ONLY on customer services: browsing books, ordering, tracking, support, returns
+- If asked about admin/seller features, redirect to customer services
+` : ''}
+
+${isAdmin ? `
+ADMIN FULL ACCESS:
+- Provide complete system statistics and analytics
+- Share user management data (total users, customers, sellers)
+- Provide order analytics (total orders, revenue, status breakdown)
+- Share return management data
+- Provide buyback request and order statistics
+- Share seller performance data
+- Provide database insights and system health information
+- Answer questions about admin dashboard features
+- Provide detailed breakdowns when requested
+` : ''}
+
+${isSeller ? `
+SELLER ACCESS:
+- Provide seller inventory management information
+- Share seller order processing data
+- Provide sales analytics and performance metrics
+- Share buyback purchasing information
+` : ''}
+
+BOIPARA PROJECT INFORMATION:
+- Name: BOIPARA ("From College Street to Your Doorstep")
+- Specialty: Online bookstore featuring books from College Street, Kolkata
+- Categories: Engineering, Medical, Literature, Mathematics, Competitive Exams, Rare & Vintage
+- Services: Book ${isCustomer ? 'browsing, purchasing' : 'selling'}, Order tracking, Customer support${isAdmin ? ', User management, System administration' : ''}
+- ${isCustomer ? 'Customer' : isAdmin ? 'Admin' : 'Seller'} Features: ${isCustomer ? 'Book search, Shopping cart, Wishlist, Order history, Account management' : isAdmin ? 'User management, Seller management, Order management, Return management, Buyback management, System analytics, Dashboard access' : 'Book listing, Inventory management, Order processing, Sales analytics'}
+- Delivery: Free delivery across India (3-5 business days)
+- Payment: UPI, Cards, Net Banking, Cash on Delivery (COD)
+- Return Policy: 7-day return policy
+- Price Range: ₹200-₹2000 for most textbooks
+- ${isCustomer ? 'Customer Support' : 'Contact'}: support@boipara.com, +91-9876543210
 - Hours: Mon-Sat 9 AM - 8 PM
+- Order ID Format: BOI + date + number (e.g., BOI120320261)
 
-Real-time Database Data: ${contextData}
+REAL-TIME BOIPARA DATABASE DATA:
+${boiparaContext}
 
-User Query: "${userMessage}"
+USER QUERY: "${userMessage}"
 
-IMPORTANT INSTRUCTIONS:
-1. If user asks to "track [book name]" or mentions tracking a specific book, DO NOT ask for Order ID - instead search their orders for that book
-2. If user provides just an Order ID (BOI format), track that specific order
-3. If user asks "show my orders" or "current orders", display their order list
-4. If user asks "yes", "yeah", "sure" or wants "more information", provide detailed book information
-5. If user asks about specific books, search the database data above for matching books
-6. For general order tracking without specifics, then ask for Order ID
-7. Handle book ordering, order placement, and order management
-8. Always be helpful, specific, and use relevant emojis
-9. Keep responses informative but concise
-10. Use the real-time database data to provide accurate information
+${isCustomer ? 'CUSTOMER-FOCUSED' : isAdmin ? 'ADMIN-FOCUSED' : 'SELLER-FOCUSED'} RESPONSE RULES:
+1. If user asks about BOIPARA features, focus on ${isCustomer ? 'customer-facing' : isAdmin ? 'admin dashboard and system' : 'seller'} features
+2. If user asks about books, provide book ${isCustomer ? 'browsing and purchasing' : isAdmin ? 'inventory and management' : 'listing and sales'} information
+3. If user asks about orders, help with order ${isCustomer ? 'tracking and management' : isAdmin ? 'analytics and system-wide data' : 'processing'}
+4. If user asks about categories, list available book categories
+5. If user asks about pricing, provide book prices and payment options
+6. If user asks about delivery, provide delivery information
+7. If user asks about returns/refunds, explain return policy${isAdmin ? ' and provide return management data' : ''}
+8. If user asks about contact, provide ${isCustomer ? 'customer support' : 'contact'} information
+${isCustomer ? '9. If user asks about admin/seller features, politely redirect to customer services' : ''}
+${isAdmin ? '9. If user asks about users, provide total user counts, customer/seller breakdown' : ''}
+${isAdmin ? '10. If user asks about dashboard, provide comprehensive admin dashboard statistics' : ''}
+${isAdmin ? '11. If user asks about revenue, orders, returns, buybacks - provide detailed analytics' : ''}
+12. If user asks about something NOT related to BOIPARA, politely redirect to BOIPARA services
+13. NEVER provide private information like passwords, API keys, technical credentials
+14. NEVER discuss competitors or other bookstore platforms
+15. **Format all responses using proper Markdown syntax**
+16. Always maintain a ${isCustomer ? 'customer service' : isAdmin ? 'professional administrative' : 'business'} tone
 
-Respond as BOIPARA AI Assistant using the real-time database data above.`;
+Respond as BOIPARA AI Assistant (Genio AI) using ${isCustomer ? 'customer-relevant' : isAdmin ? 'comprehensive admin' : 'seller-relevant'} BOIPARA information with proper Markdown formatting.`;
 
       const response = await fetch(GEMINI_API_URL, {
         method: 'POST',
@@ -176,13 +412,33 @@ Respond as BOIPARA AI Assistant using the real-time database data above.`;
       }
     } catch (error) {
       console.error('Gemini AI Error:', error);
-      return await getFallbackResponse(userMessage);
+      return await getBoiparaFallbackResponse(userMessage);
     }
   };
 
   // Handle complete order flow
   const handleOrderFlow = async (userMessage: string): Promise<string> => {
     const lowerMessage = userMessage.toLowerCase();
+    
+    // Check for cancellation keywords - enhanced detection
+    const cancellationKeywords = [
+      'cancel', 'stop', 'quit', 'exit', 'no thanks', 'not interested',
+      'don\'t want', 'not purchase', 'not buy', 'changed my mind',
+      'thinking not', 'don\'t need', 'not ordering', 'abort'
+    ];
+    if (cancellationKeywords.some(keyword => lowerMessage.includes(keyword))) {
+      setOrderFlow({
+        isActive: false,
+        step: '',
+        bookName: '',
+        bookId: '',
+        bookPrice: 0,
+        quantity: 0,
+        address: '',
+        paymentMethod: ''
+      });
+      return "❌ Order cancelled. No worries! Is there anything else I can help you with? You can always browse our books or ask me any questions about BOIPARA.";
+    }
     
     // Start order flow
     if (!orderFlow.isActive && (lowerMessage.includes('order a book') || lowerMessage.includes('buy a book') || lowerMessage.includes('purchase a book'))) {
@@ -245,15 +501,42 @@ Respond as BOIPARA AI Assistant using the real-time database data above.`;
           return "❌ Please enter a valid quantity (1-10). How many copies would you like to order?";
           
         case 'address':
-          if (userMessage.trim().length > 20) { // Basic validation for address
+          // Enhanced validation for address vs cancellation
+          const addressCancellationCheck = [
+            'not purchase', 'don\'t want', 'changed mind', 'thinking not',
+            'not buy', 'cancel', 'abort', 'stop'
+          ];
+          
+          if (addressCancellationCheck.some(phrase => lowerMessage.includes(phrase))) {
             setOrderFlow({
-              ...orderFlow,
-              step: 'payment',
-              address: userMessage.trim()
+              isActive: false,
+              step: '',
+              bookName: '',
+              bookId: '',
+              bookPrice: 0,
+              quantity: 0,
+              address: '',
+              paymentMethod: ''
             });
-            return `📍 Address saved successfully!\n\nNow, please choose your payment method:\n\n1️⃣ **COD (Cash on Delivery)** - Pay when you receive\n2️⃣ **UPI** - Pay online via UPI\n3️⃣ **Card** - Credit/Debit card payment\n4️⃣ **Net Banking** - Online banking\n\nJust type the number (1, 2, 3, or 4) or the payment method name.`;
+            return "❌ I understand you've changed your mind about purchasing. No problem at all! Is there anything else I can help you with? You can browse other books or ask me questions about BOIPARA.";
           }
-          return "❌ Please provide a complete address with all details (name, house number, street, city, state, PIN, phone).";
+          
+          // Validate if it's actually an address (should contain some address elements)
+          const addressElements = ['house', 'flat', 'street', 'road', 'city', 'pin', 'phone', 'area', 'block', 'sector'];
+          const hasAddressElements = addressElements.some(element => lowerMessage.includes(element)) || 
+                                   userMessage.length > 20 || // Reasonable address length
+                                   /\d/.test(userMessage); // Contains numbers (likely address)
+          
+          if (!hasAddressElements && userMessage.length < 15) {
+            return "📍 Please provide a complete delivery address including:\n- Name\n- House/Flat number\n- Street/Area\n- City, State\n- PIN code\n- Phone number\n\nOr type 'cancel' if you don't want to proceed with the order.";
+          }
+          
+          setOrderFlow({
+            ...orderFlow,
+            step: 'payment',
+            address: userMessage.trim()
+          });
+          return `📍 Address saved successfully!\n\nNow, please choose your payment method:\n\n1️⃣ **COD (Cash on Delivery)** - Pay when you receive\n2️⃣ **UPI** - Pay online via UPI\n3️⃣ **Card** - Credit/Debit card payment\n4️⃣ **Net Banking** - Online banking\n\nJust type the number (1, 2, 3, or 4) or the payment method name.`;
           
         case 'payment':
           let paymentMethod = '';
@@ -396,59 +679,153 @@ Respond as BOIPARA AI Assistant using the real-time database data above.`;
     return '';
   };
   
-  // Enhanced database context fetching
-  const getDatabaseContext = async (userMessage: string): Promise<string> => {
+  // Enhanced BOIPARA project context fetching with role-based filtering and admin access
+  const getBoiparaProjectContext = async (userMessage: string): Promise<string> => {
     const lowerMessage = userMessage.toLowerCase();
-    let contextData = '';
+    let boiparaContext = '';
+    
+    // Check if user is customer (default), admin, or seller
+    const isCustomer = !user || user.role === 'customer';
+    const isAdmin = user && user.role === 'admin';
+    const isSeller = user && user.role === 'seller';
     
     try {
-      // Always fetch some basic inventory data
-      const booksResponse = await apiService.getBooks({ limit: 200 });
+      // Always fetch some basic BOIPARA inventory data
+      const booksResponse = await apiService.getBooksInitial(100);
       const books = booksResponse.books || [];
       const totalBooks = books.length;
       const categories = [...new Set(books.map(book => book.category))].filter(Boolean);
+      const priceRange = books.length > 0 ? {
+        min: Math.min(...books.map(b => b.price)),
+        max: Math.max(...books.map(b => b.price))
+      } : { min: 200, max: 2000 };
       
-      contextData = `Total books in inventory: ${totalBooks}. Available categories: ${categories.join(', ')}.`;
+      // ADMIN: Fetch comprehensive system data
+      if (isAdmin) {
+        try {
+          // Fetch all admin dashboard data
+          const [usersData, sellersData, ordersData, returnsData, buybackRequestsData, buybackOrdersData] = await Promise.all([
+            apiService.getAllUsers().catch(() => []),
+            apiService.getAllSellers().catch(() => []),
+            apiService.getAllOrders().catch(() => []),
+            apiService.getAllReturns().catch(() => []),
+            apiService.getAllBuybackRequests().catch(() => []),
+            apiService.getAllBuybackOrders().catch(() => [])
+          ]);
+          
+          const totalUsers = usersData.length || 0;
+          const totalSellers = sellersData.length || 0;
+          const totalCustomers = usersData.filter(u => u.role === 'customer').length || 0;
+          const totalOrders = ordersData.length || 0;
+          const totalReturns = returnsData.length || 0;
+          const totalBuybackRequests = buybackRequestsData.length || 0;
+          const totalBuybackOrders = buybackOrdersData.length || 0;
+          
+          // Calculate revenue
+          const totalRevenue = ordersData.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+          
+          // Order status breakdown
+          const pendingOrders = ordersData.filter(o => o.status === 'pending').length;
+          const confirmedOrders = ordersData.filter(o => o.status === 'confirmed').length;
+          const shippedOrders = ordersData.filter(o => o.status === 'shipped').length;
+          const deliveredOrders = ordersData.filter(o => o.status === 'delivered').length;
+          const cancelledOrders = ordersData.filter(o => o.status === 'cancelled').length;
+          
+          // Buyback status breakdown
+          const pendingBuybacks = buybackRequestsData.filter(b => b.status === 'pending').length;
+          const approvedBuybacks = buybackRequestsData.filter(b => b.status === 'approved').length;
+          const rejectedBuybacks = buybackRequestsData.filter(b => b.status === 'rejected').length;
+          
+          boiparaContext = `ADMIN DASHBOARD DATA:
+- Total Books: ${totalBooks} (Categories: ${categories.join(', ')})
+- Total Users: ${totalUsers} (Customers: ${totalCustomers}, Sellers: ${totalSellers}, Admins: ${totalUsers - totalCustomers - totalSellers})
+- Total Orders: ${totalOrders} (Pending: ${pendingOrders}, Confirmed: ${confirmedOrders}, Shipped: ${shippedOrders}, Delivered: ${deliveredOrders}, Cancelled: ${cancelledOrders})
+- Total Revenue: ₹${totalRevenue}
+- Total Returns: ${totalReturns}
+- Buyback Requests: ${totalBuybackRequests} (Pending: ${pendingBuybacks}, Approved: ${approvedBuybacks}, Rejected: ${rejectedBuybacks})
+- Buyback Orders: ${totalBuybackOrders}
+- Price Range: ₹${priceRange.min}-₹${priceRange.max}
+- System Status: Operational`;
+          
+        } catch (error) {
+          console.error('Error fetching admin dashboard data:', error);
+          boiparaContext = `ADMIN INVENTORY: ${totalBooks} books available. Categories: ${categories.join(', ')}. Price range: ₹${priceRange.min}-₹${priceRange.max}.`;
+        }
+      } else {
+        // Customer/Seller view
+        boiparaContext = `BOIPARA CUSTOMER INVENTORY: ${totalBooks} books available for purchase. Categories: ${categories.join(', ')}. Price range: ₹${priceRange.min}-₹${priceRange.max}.`;
+      }
       
-      // Add specific category data if mentioned
-      if (lowerMessage.includes('engineering') || lowerMessage.includes('medical') || lowerMessage.includes('literature') || lowerMessage.includes('mathematics') || lowerMessage.includes('class 10')) {
+      // Add category-specific information if mentioned
+      if (lowerMessage.includes('engineering') || lowerMessage.includes('medical') || 
+          lowerMessage.includes('literature') || lowerMessage.includes('mathematics') || 
+          lowerMessage.includes('competitive') || lowerMessage.includes('exam')) {
+        
         const categoryBooks = books.filter(book => {
           const bookTitle = book.title?.toLowerCase() || '';
           const bookCategory = book.category?.toLowerCase() || '';
-          const bookAuthor = book.author?.toLowerCase() || '';
           
           return bookTitle.includes('engineering') || bookCategory.includes('engineering') ||
                  bookTitle.includes('medical') || bookCategory.includes('medical') ||
                  bookTitle.includes('literature') || bookCategory.includes('literature') ||
                  bookTitle.includes('mathematics') || bookTitle.includes('math') ||
-                 bookTitle.includes('class 10') || bookTitle.includes('10th');
+                 bookTitle.includes('competitive') || bookTitle.includes('exam');
         });
         
         if (categoryBooks.length > 0) {
-          const sampleBooks = categoryBooks.slice(0, 3).map(book => 
+          const sampleBooks = categoryBooks.slice(0, 5).map(book => 
             `"${book.title}" by ${book.author} (₹${book.price})`
           ).join(', ');
-          contextData += ` Found ${categoryBooks.length} relevant books. Examples: ${sampleBooks}.`;
+          boiparaContext += ` CATEGORY BOOKS: Found ${categoryBooks.length} books. Examples: ${sampleBooks}.`;
         }
       }
       
-      // Add user order data if available
-      if (user && lowerMessage.includes('order')) {
+      // Add user-specific data if available and relevant
+      if (user && (lowerMessage.includes('my') || lowerMessage.includes('order') || lowerMessage.includes('account'))) {
         try {
           const ordersResponse = await apiService.getMyOrders();
           const orders = ordersResponse.orders || [];
-          contextData += ` User has ${orders.length} orders in their account.`;
+          boiparaContext += ` USER ACCOUNT: You have ${orders.length} orders in your BOIPARA account.`;
+          
+          if (orders.length > 0) {
+            const recentOrder = orders[0];
+            const orderStatus = recentOrder.status || 'pending';
+            boiparaContext += ` Most recent order status: ${orderStatus}.`;
+          }
         } catch (error) {
-          console.error('Error fetching orders:', error);
+          console.error('Error fetching user orders for context:', error);
         }
       }
       
+      // Add BOIPARA features context based on role
+      if (lowerMessage.includes('feature') || lowerMessage.includes('service') || 
+          lowerMessage.includes('what') || lowerMessage.includes('about')) {
+        if (isCustomer) {
+          boiparaContext += ` CUSTOMER FEATURES: Book browsing and search, Shopping cart, Wishlist, Order tracking, Account management, Customer support, Mobile responsive design.`;
+        } else if (isAdmin) {
+          boiparaContext += ` ADMIN FEATURES: User management, Seller management, Order management, Return management, Buyback management, System analytics, Dashboard access, Full database control.`;
+        } else if (isSeller) {
+          boiparaContext += ` SELLER FEATURES: Book listing, Inventory management, Order processing, Sales analytics, Buyback purchasing.`;
+        }
+      }
+      
+      // Add delivery and payment information
+      if (lowerMessage.includes('delivery') || lowerMessage.includes('shipping') || 
+          lowerMessage.includes('payment') || lowerMessage.includes('pay')) {
+        boiparaContext += ` CUSTOMER SERVICES: Free delivery across India (3-5 days), Payment methods: UPI, Cards, Net Banking, COD. 7-day return policy for customers.`;
+      }
+      
+      // Filter out admin/seller information for customers
+      if (isCustomer && (lowerMessage.includes('admin') || lowerMessage.includes('seller') || lowerMessage.includes('dashboard'))) {
+        boiparaContext += ` CUSTOMER FOCUS: BOIPARA chatbot provides customer support only. For business inquiries, contact support@boipara.com.`;
+      }
+      
     } catch (error) {
-      console.error('Error fetching database context:', error);
-      contextData = 'Unable to fetch current inventory data, but we have a vast collection of books from College Street.';
+      console.error('Error fetching BOIPARA project context:', error);
+      boiparaContext = 'BOIPARA is an online bookstore specializing in books from College Street, Kolkata with Engineering, Medical, Literature, and Rare & Vintage collections available for customers.';
     }
     
-    return contextData;
+    return boiparaContext;
   };
   
   // Enhanced book search function
@@ -794,7 +1171,7 @@ Respond as BOIPARA AI Assistant using the real-time database data above.`;
     return '';
   };
   
-  const getFallbackResponse = async (input: string): Promise<string> => {
+  const getBoiparaFallbackResponse = async (input: string): Promise<string> => {
     const val = input.toLowerCase();
     
     // Handle order flow first
@@ -815,48 +1192,316 @@ Respond as BOIPARA AI Assistant using the real-time database data above.`;
       return followUpResponse;
     }
     
-    // Enhanced fallback with database integration
+    // Admin dashboard queries - comprehensive system information
+    const isAdmin = user && user.role === 'admin';
+    
+    if (isAdmin && (val.includes('how many users') || val.includes('total users') || val.includes('user count'))) {
+      try {
+        const usersData = await apiService.getAllUsers();
+        const totalUsers = usersData.length;
+        const customers = usersData.filter(u => u.role === 'customer').length;
+        const sellers = usersData.filter(u => u.role === 'seller').length;
+        const admins = usersData.filter(u => u.role === 'admin').length;
+        
+        return `## 👥 BOIPARA User Statistics\n\n### Total Users: **${totalUsers}**\n\n#### User Breakdown:\n- 🛍️ **Customers:** ${customers} users\n- 🏪 **Sellers:** ${sellers} users\n- 🔑 **Admins:** ${admins} users\n\n#### User Distribution:\n\`\`\`\nCustomers: ${((customers/totalUsers)*100).toFixed(1)}%\nSellers:   ${((sellers/totalUsers)*100).toFixed(1)}%\nAdmins:    ${((admins/totalUsers)*100).toFixed(1)}%\n\`\`\`\n\n**System Status:** Active and operational`;
+      } catch (error) {
+        return '❌ Unable to fetch user data. Please check database connection.';
+      }
+    }
+    
+    if (isAdmin && (val.includes('dashboard') || val.includes('admin panel') || val.includes('system stats') || val.includes('overview'))) {
+      try {
+        const [usersData, ordersData, returnsData, buybackRequestsData, buybackOrdersData, booksData] = await Promise.all([
+          apiService.getAllUsers().catch(() => []),
+          apiService.getAllOrders().catch(() => []),
+          apiService.getAllReturns().catch(() => []),
+          apiService.getAllBuybackRequests().catch(() => []),
+          apiService.getAllBuybackOrders().catch(() => []),
+          apiService.getBooks({ limit: 1000 }).catch(() => ({ books: [] }))
+        ]);
+        
+        const totalUsers = usersData.length;
+        const totalCustomers = usersData.filter(u => u.role === 'customer').length;
+        const totalSellers = usersData.filter(u => u.role === 'seller').length;
+        const totalOrders = ordersData.length;
+        const totalRevenue = ordersData.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+        const totalBooks = booksData.books?.length || 0;
+        const totalReturns = returnsData.length;
+        const totalBuybackRequests = buybackRequestsData.length;
+        const totalBuybackOrders = buybackOrdersData.length;
+        
+        const pendingOrders = ordersData.filter(o => o.status === 'pending').length;
+        const confirmedOrders = ordersData.filter(o => o.status === 'confirmed').length;
+        const shippedOrders = ordersData.filter(o => o.status === 'shipped').length;
+        const deliveredOrders = ordersData.filter(o => o.status === 'delivered').length;
+        const cancelledOrders = ordersData.filter(o => o.status === 'cancelled').length;
+        
+        const pendingBuybacks = buybackRequestsData.filter(b => b.status === 'pending').length;
+        const approvedBuybacks = buybackRequestsData.filter(b => b.status === 'approved').length;
+        const rejectedBuybacks = buybackRequestsData.filter(b => b.status === 'rejected').length;
+        
+        return `## 📊 BOIPARA Admin Dashboard\n\n### 👥 User Management\n- **Total Users:** ${totalUsers}\n  - Customers: ${totalCustomers}\n  - Sellers: ${totalSellers}\n  - Admins: ${totalUsers - totalCustomers - totalSellers}\n\n### 📚 Book Inventory\n- **Total Books:** ${totalBooks}\n\n### 📦 Order Management\n- **Total Orders:** ${totalOrders}\n- **Total Revenue:** ₹${totalRevenue.toLocaleString()}\n\n#### Order Status:\n- Pending: ${pendingOrders}\n- Confirmed: ${confirmedOrders}\n- Shipped: ${shippedOrders}\n- Delivered: ${deliveredOrders}\n- Cancelled: ${cancelledOrders}\n\n### 🔄 Return Management\n- **Total Returns:** ${totalReturns}\n\n### 💰 Buyback System\n- **Buyback Requests:** ${totalBuybackRequests} (Pending: ${pendingBuybacks}, Approved: ${approvedBuybacks}, Rejected: ${rejectedBuybacks})\n- **Buyback Orders:** ${totalBuybackOrders}\n\n### 🟢 System Status\n**All systems operational**\n\n*Last updated: ${new Date().toLocaleString()}*`;
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        return '❌ Unable to fetch complete dashboard data. Some services may be unavailable.';
+      }
+    }
+    
+    if (isAdmin && (val.includes('orders') || val.includes('customer orders') || val.includes('order details'))) {
+      try {
+        const ordersData = await apiService.getAllOrders();
+        const totalOrders = ordersData.length;
+        const totalRevenue = ordersData.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+        const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+        
+        const pendingOrders = ordersData.filter(o => o.status === 'pending').length;
+        const confirmedOrders = ordersData.filter(o => o.status === 'confirmed').length;
+        const shippedOrders = ordersData.filter(o => o.status === 'shipped').length;
+        const deliveredOrders = ordersData.filter(o => o.status === 'delivered').length;
+        const cancelledOrders = ordersData.filter(o => o.status === 'cancelled').length;
+        
+        return `## 📦 Customer Orders Overview\n\n### Order Statistics:\n- **Total Orders:** ${totalOrders}\n- **Total Revenue:** ₹${totalRevenue.toLocaleString()}\n- **Average Order Value:** ₹${avgOrderValue.toFixed(2)}\n\n### Order Status Distribution:\n- Pending: ${pendingOrders} (${((pendingOrders/totalOrders)*100).toFixed(1)}%)\n- Confirmed: ${confirmedOrders} (${((confirmedOrders/totalOrders)*100).toFixed(1)}%)\n- Shipped: ${shippedOrders} (${((shippedOrders/totalOrders)*100).toFixed(1)}%)\n- Delivered: ${deliveredOrders} (${((deliveredOrders/totalOrders)*100).toFixed(1)}%)\n- Cancelled: ${cancelledOrders} (${((cancelledOrders/totalOrders)*100).toFixed(1)}%)\n\n### Recent Orders:\n${ordersData.slice(0, 5).map((order, i) => `${i+1}. Order ${order.orderId} - ₹${order.totalAmount} - ${order.status}`).join('\n')}\n\n**Need more details?** Ask about specific order statuses or revenue analytics.`;
+      } catch (error) {
+        return '❌ Unable to fetch order data. Please check database connection.';
+      }
+    }
+    
+    if (isAdmin && (val.includes('returns') || val.includes('return requests'))) {
+      try {
+        const returnsData = await apiService.getAllReturns();
+        const totalReturns = returnsData.length;
+        const pendingReturns = returnsData.filter(r => r.status === 'pending').length;
+        const approvedReturns = returnsData.filter(r => r.status === 'approved').length;
+        const rejectedReturns = returnsData.filter(r => r.status === 'rejected').length;
+        const completedReturns = returnsData.filter(r => r.status === 'completed').length;
+        
+        return `## 🔄 Return Management\n\n### Return Statistics:\n- **Total Returns:** ${totalReturns}\n\n### Status Breakdown:\n- Pending: ${pendingReturns}\n- Approved: ${approvedReturns}\n- Rejected: ${rejectedReturns}\n- Completed: ${completedReturns}\n\n### Recent Returns:\n${returnsData.slice(0, 5).map((ret, i) => `${i+1}. Return #${ret._id?.substring(0, 8)} - Status: ${ret.status}`).join('\n')}\n\n**Action Required:** ${pendingReturns} pending returns need review.`;
+      } catch (error) {
+        return '❌ Unable to fetch return data. Please check database connection.';
+      }
+    }
+    
+    if (isAdmin && (val.includes('buyback') || val.includes('buyback requests') || val.includes('buyback orders'))) {
+      try {
+        const [buybackRequestsData, buybackOrdersData] = await Promise.all([
+          apiService.getAllBuybackRequests(),
+          apiService.getAllBuybackOrders()
+        ]);
+        
+        const totalRequests = buybackRequestsData.length;
+        const pendingRequests = buybackRequestsData.filter(b => b.status === 'pending').length;
+        const approvedRequests = buybackRequestsData.filter(b => b.status === 'approved').length;
+        const rejectedRequests = buybackRequestsData.filter(b => b.status === 'rejected').length;
+        const totalOrders = buybackOrdersData.length;
+        
+        return `## 💰 Buyback System Overview\n\n### Buyback Requests:\n- **Total Requests:** ${totalRequests}\n  - Pending: ${pendingRequests}\n  - Approved: ${approvedRequests}\n  - Rejected: ${rejectedRequests}\n\n### Buyback Orders:\n- **Total Orders:** ${totalOrders}\n\n### Approval Rate:\n**${totalRequests > 0 ? ((approvedRequests / totalRequests) * 100).toFixed(1) : 0}%** of requests approved\n\n### Recent Requests:\n${buybackRequestsData.slice(0, 5).map((req, i) => `${i+1}. ${req.bookTitle} - ₹${req.expectedPrice} - ${req.status}`).join('\n')}\n\n**Action Required:** ${pendingRequests} pending requests need review.`;
+      } catch (error) {
+        return '❌ Unable to fetch buyback data. Please check database connection.';
+      }
+    }
+    
+    if (isAdmin && (val.includes('sellers') || val.includes('seller details'))) {
+      try {
+        const sellersData = await apiService.getAllSellers();
+        const totalSellers = sellersData.length;
+        
+        return `## 🏪 Seller Management\n\n### Seller Statistics:\n- **Total Sellers:** ${totalSellers}\n\n### Registered Sellers:\n${sellersData.slice(0, 10).map((seller, i) => `${i+1}. ${seller.name} - Store: ${seller.storeName || 'N/A'} - ${seller.email}`).join('\n')}\n\n${totalSellers > 10 ? `*Showing 10 of ${totalSellers} sellers*` : ''}\n\n**Need more details?** Ask about specific seller performance.`;
+      } catch (error) {
+        return '❌ Unable to fetch seller data. Please check database connection.';
+      }
+    }
+    
+    if (isAdmin && (val.includes('revenue') || val.includes('sales') || val.includes('earnings'))) {
+      try {
+        const ordersData = await apiService.getAllOrders();
+        const totalRevenue = ordersData.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+        const deliveredOrders = ordersData.filter(o => o.status === 'delivered');
+        const confirmedRevenue = deliveredOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+        const pendingRevenue = totalRevenue - confirmedRevenue;
+        
+        return `## 💰 Revenue Analytics\n\n### Total Revenue:\n**₹${totalRevenue.toLocaleString()}**\n\n### Revenue Breakdown:\n- Confirmed Revenue (Delivered): ₹${confirmedRevenue.toLocaleString()}\n- Pending Revenue (In Process): ₹${pendingRevenue.toLocaleString()}\n\n### Order Statistics:\n- Total Orders: ${ordersData.length}\n- Delivered Orders: ${deliveredOrders.length}\n- Average Order Value: ₹${(totalRevenue / ordersData.length).toFixed(2)}\n\n**System Performance:** Strong revenue generation with ${deliveredOrders.length} successful deliveries.`;
+      } catch (error) {
+        return '❌ Unable to fetch revenue data. Please check database connection.';
+      }
+    }
+    
+    // BOIPARA-specific responses with database integration and admin access
+    if (val.includes('what is boipara') || val.includes('about boipara') || val.includes('tell me about')) {
+      const contextData = await getBoiparaProjectContext(input);
+      const isAdmin = user && user.role === 'admin';
+      
+      if (isAdmin) {
+        return `## About BOIPARA - Admin Overview
+
+🏢 **BOIPARA** is your comprehensive online bookstore management system bringing College Street books to customers nationwide.
+
+### System Overview:
+${contextData}
+
+### Admin Capabilities:
+- 👥 **User Management** - Manage all customers, sellers, and admins
+- 📚 **Book Management** - Full inventory control
+- 📦 **Order Management** - Track and manage all orders
+- 🔄 **Return Management** - Handle return requests
+- 💰 **Buyback System** - Manage buyback requests and orders
+- 📊 **Analytics Dashboard** - Comprehensive system analytics
+
+### Contact Information:
+- 📞 **Phone:** +91-9876543210
+- 📧 **Email:** support@boipara.com`;
+      }
+      
+      return `## About BOIPARA
+
+🏢 **BOIPARA** is your trusted online bookstore bringing the authentic College Street book experience to your doorstep!
+
+### What We Offer:
+- 📚 Books from College Street, Kolkata
+- 🎯 Engineering, Medical, Literature & Rare collections
+- 🔄 Book buyback services
+- 🚚 Free delivery across India (3-5 days)
+- 💳 Multiple payment options (UPI, Cards, COD)
+
+### Current Status:
+${contextData}
+
+### Contact Information:
+- 📞 **Phone:** +91-9876543210
+- 📧 **Email:** support@boipara.com`;
+    }
+    
     if (val.includes('wings of fire')) {
       const searchResult = await searchSpecificBooks(input);
       if (searchResult) {
-        return `📚 ${searchResult} This is a popular autobiography by Dr. A.P.J. Abdul Kalam! Would you like to place an order?`;
+        return `📚 ${searchResult} This is Dr. A.P.J. Abdul Kalam's inspiring autobiography! Would you like to place an order?`;
       }
-      return "📚 'Wings of Fire' by Dr. A.P.J. Abdul Kalam is a popular autobiography! Let me check our inventory for you. We may have it in our Literature or Biography section. Would you like me to help you order it?";
+      return `📚 "Wings of Fire" by Dr. A.P.J. Abdul Kalam is a popular autobiography! Let me check our BOIPARA inventory for you. We specialize in books from College Street, Kolkata. Would you like me to help you order it?`;
     }
     
     if (val.includes('mathematics') && val.includes('class 10')) {
       const searchResult = await searchSpecificBooks(input);
       if (searchResult) {
-        return `📚 ${searchResult} Would you like me to help you place an order for any of these books?`;
+        return `📚 ${searchResult} These are from our academic collection at BOIPARA! Would you like me to help you place an order?`;
       }
-      return "📚 Let me check our Mathematics Class 10 collection! We have various NCERT, CBSE, and reference books. Could you specify the board or author you prefer?";
+      return `📚 Let me check our BOIPARA Mathematics Class 10 collection! We have various NCERT, CBSE, and reference books from College Street sellers. Could you specify the board or author you prefer?`;
     }
     
     if (val.includes('how many books') || val.includes('book count') || val.includes('inventory')) {
-      const contextData = await getDatabaseContext(input);
-      return `📚 ${contextData} Browse through our collections or ask about specific subjects!`;
+      const contextData = await getBoiparaProjectContext(input);
+      return `📚 **BOIPARA Inventory Status:**\n\n${contextData}\n\n🎯 Browse through our College Street collections or ask about specific subjects! We're constantly adding new books from trusted Kolkata sellers.`;
     }
     
-    if (val.includes('order') || val.includes('buy') || val.includes('want')) {
-      const searchResult = await searchSpecificBooks(input);
-      if (searchResult) {
-        return `📚 ${searchResult} Would you like to place an order for any of these books?`;
-      }
-      return "📚 I'd love to help you order a book! Please tell me the title, subject, or author you're looking for, and I'll check our College Street inventory.";
-    } else if (val.includes('track')) {
-      return "📦 I can help you track your orders! You can:\n\n1️⃣ Provide Order ID (e.g., BOI120320261)\n2️⃣ Say 'show my orders' to see all orders\n3️⃣ Say 'track [book name]' to find orders by book\n\nWhat would you like to do?";
-    } else if (val.includes('cancel')) {
-      return "🚫 To cancel an order, please provide your Order ID (format: BOI120320261) and I'll help you cancel it.";
-    } else if (val.includes('support') || val.includes('help')) {
-      return "🎧 I'm here to help! Contact our support team at +91-9876543210 or support@boipara.com for immediate assistance.";
-    } else {
-      // For any book-related query, try to search
-      const searchResult = await searchSpecificBooks(input);
-      if (searchResult) {
-        return `📚 ${searchResult} Would you like more information about any of these books?`;
-      }
-      return "🤔 I'm here to help with books, orders, and bookstore services! Try asking about specific books, subjects, or your orders.";
+    if (val.includes('categories') || val.includes('subjects') || val.includes('types of books')) {
+      const contextData = await getBoiparaProjectContext(input);
+      return `## BOIPARA Book Categories
+
+### Available Categories:
+- 🔧 **Engineering** - All branches & semesters
+- 🎨 **Medical** - MBBS, NEET, medical reference
+- 📜 **Literature** - Bengali, English, classics
+- 🔢 **Mathematics** - All classes & competitive exams
+- 🏆 **Competitive Exams** - JEE, NEET, WBBSE
+- 📜 **Rare & Vintage** - Collector's editions
+
+### Current Status:
+${contextData}`;
     }
+    
+    if (val.includes('order') || val.includes('buy') || val.includes('want') || val.includes('purchase')) {
+      const searchResult = await searchSpecificBooks(input);
+      if (searchResult) {
+        return `📚 ${searchResult} These are available in our BOIPARA inventory! Would you like to place an order for any of these books?`;
+      }
+      return `📚 I'd love to help you order a book from BOIPARA! Please tell me the title, subject, or author you're looking for, and I'll check our College Street inventory for you.`;
+    }
+    
+    if (val.includes('track')) {
+      return `📦 **BOIPARA Order Tracking**\n\nI can help you track your BOIPARA orders! You can:\n\n1️⃣ Provide Order ID (e.g., BOI120320261)\n2️⃣ Say 'show my orders' to see all orders\n3️⃣ Say 'track [book name]' to find orders by book\n\nWhat would you like to do?`;
+    }
+    
+    if (val.includes('cancel')) {
+      return `🚫 **BOIPARA Order Cancellation**\n\nTo cancel your BOIPARA order, please provide your Order ID (format: BOI120320261) and I'll help you cancel it.\n\n📞 You can also contact our support team at +91-9876543210 for immediate assistance.`;
+    }
+    
+    if (val.includes('support') || val.includes('help') || val.includes('contact')) {
+      return `🎬 **BOIPARA Customer Support**\n\n📞 **Phone:** +91-9876543210\n📧 **Email:** support@boipara.com\n🕰️ **Hours:** Mon-Sat 9 AM - 8 PM\n\n💬 I'm here 24/7 to help with:\n• Book searches & recommendations\n• Order tracking & management\n• Account assistance\n• General BOIPARA information`;
+    }
+    
+    if (val.includes('delivery') || val.includes('shipping')) {
+      return `🚚 **BOIPARA Delivery Information**\n\n✨ **Free Delivery** across India\n🕰️ **Timeline:** 3-5 business days\n📦 **Packaging:** Secure book packaging\n📍 **Coverage:** All major cities & towns\n\n💳 **Payment Options:**\n• UPI (Google Pay, PhonePe, Paytm)\n• Credit/Debit Cards\n• Net Banking\n• Cash on Delivery (COD)`;
+    }
+    
+    if (val.includes('return') || val.includes('refund')) {
+      return `🔄 **BOIPARA Return Policy**\n\n✅ **7-day return policy**\n💰 **Full refund** for eligible returns\n📦 **Condition:** Books should be in original condition\n📞 **Process:** Contact support at +91-9876543210\n\n📄 **Return Reasons:**\n• Damaged/defective books\n• Wrong book delivered\n• Quality issues\n\n🕰️ **Refund Timeline:** 3-5 business days after return approval`;
+    }
+    
+    // Handle non-BOIPARA queries and admin/seller redirects
+    if (val.includes('weather') || val.includes('news') || val.includes('politics') || 
+        val.includes('other website') || val.includes('amazon') || val.includes('flipkart')) {
+      return `## BOIPARA Customer Support
+
+📚 I'm **Genio AI**, your BOIPARA customer assistant!
+
+### I can help you with:
+- 🔍 Finding books in our College Street collection
+- 🛒 Placing orders & tracking deliveries
+- 📖 Book recommendations & pricing
+- 🎧 Customer support & account assistance
+
+### What would you like to know about BOIPARA books or services?`;
+    }
+    
+    // Handle admin/seller queries for customers
+    const isCustomer = !user || user.role === 'customer';
+    if (isCustomer && (val.includes('admin') || val.includes('seller') || val.includes('dashboard') || 
+        val.includes('manage') || val.includes('backend') || val.includes('database'))) {
+      return `## Customer Support Only
+
+👋 I'm here to help **customers** with BOIPARA services!
+
+### As a customer, I can assist you with:
+- 📚 **Book Browsing** - Find your perfect book
+- 🛒 **Order Management** - Place and track orders
+- 💰 **Pricing & Payment** - Get quotes and payment help
+- 📞 **Customer Support** - Account and service help
+
+### For business inquiries:
+📧 Contact our team at **support@boipara.com**
+
+### What book can I help you find today?`;
+    }
+    
+    // For any book-related query, try to search BOIPARA inventory
+    const searchResult = await searchSpecificBooks(input);
+    if (searchResult) {
+      return `📚 **BOIPARA Search Results:**\n\n${searchResult}\n\nWould you like more information about any of these books from our College Street collection?`;
+    }
+    
+    return `## Welcome to BOIPARA Customer Support!
+
+👋 I'm **Genio AI**, your personal BOIPARA shopping assistant.
+
+### I can help you with:
+
+🔍 **Book Search** - Find books by title, author, or subject
+📦 **Order Management** - Track orders, place new orders
+📚 **Recommendations** - Get book suggestions
+🎯 **BOIPARA Info** - Learn about our services
+
+### Popular Categories:
+- 🔧 Engineering Books
+- 🏥 Medical Books  
+- 📖 Literature
+- 🔢 Mathematics
+- 🏆 Competitive Exams
+
+### Try asking:
+- "Show me engineering books"
+- "Track my order"
+- "What is BOIPARA?"
+- "Order a book"
+
+**Ready to find your next book?** 📚✨`;
   };
 
   const handleFileAttach = () => {
@@ -942,10 +1587,10 @@ Respond as BOIPARA AI Assistant using the real-time database data above.`;
   };
 
   const quickActions = [
-    { text: '🛒 Order a Book', action: 'Order a Book' },
-    { text: '📖 Browse Literature', action: 'Browse Literature' },
+    { text: '📚 Browse BOIPARA Books', action: 'Show me books available in BOIPARA' },
     { text: '📦 Track My Order', action: 'Track My Order' },
-    { text: '🎧 Support', action: 'Contact Support' }
+    { text: '🎯 About BOIPARA', action: 'What is BOIPARA and what services do you offer?' },
+    { text: '🎧 BOIPARA Support', action: 'Contact BOIPARA Support' }
   ];
 
   const handleQuickAction = (action: string) => {
@@ -1065,21 +1710,24 @@ Respond as BOIPARA AI Assistant using the real-time database data above.`;
               }}
             >
               <div style={{ fontWeight: '600', marginBottom: '8px' }}>
-                Hi! I'm your Gemini-powered assistant.
+                Hi! I'm your BOIPARA AI Assistant, trained specifically on our bookstore data.
               </div>
-              How can I help you navigate our library today?
+              I can help you with books, orders, and everything about BOIPARA!
+              <div style={{ fontSize: '12px', color: '#d4a017', marginTop: '8px', padding: '6px', background: 'rgba(212, 160, 23, 0.1)', borderRadius: '8px' }}>
+                🔒 <strong>Privacy Protected:</strong> I only access your order history and book preferences - never passwords or sensitive data.
+              </div>
               <ul style={{ marginTop: '10px', paddingLeft: 0, listStyle: 'none' }}>
                 <li style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', opacity: 0.9 }}>
-                  📚 Find recommendations
+                  📚 Find BOIPARA books & recommendations
                 </li>
                 <li style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', opacity: 0.9 }}>
-                  🔍 Search by ISBN or Author
+                  📦 Track your BOIPARA orders
                 </li>
                 <li style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', opacity: 0.9 }}>
-                  💰 Get quotes to sell books
+                  💰 Get quotes for book buyback
                 </li>
                 <li style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', opacity: 0.9 }}>
-                  📦 Live order tracking
+                  🎯 Learn about BOIPARA services
                 </li>
               </ul>
             </div>
@@ -1124,7 +1772,7 @@ Respond as BOIPARA AI Assistant using the real-time database data above.`;
                 className={`max-w-[80%] p-3 text-sm leading-relaxed ${
                   message.isUser
                     ? 'self-end bg-[#d4a017] text-[#1a0f06] rounded-2xl rounded-br-sm font-medium'
-                    : 'self-start rounded-2xl rounded-bl-sm border-l-2 border-[#d4a017]'
+                    : 'self-start rounded-2xl rounded-bl-sm border-l-2 border-[#d4a017] bot-message'
                 }`}
                 style={{
                   backgroundColor: message.isUser ? '#d4a017' : 'rgba(61, 40, 23, 0.9)',
@@ -1140,7 +1788,11 @@ Respond as BOIPARA AI Assistant using the real-time database data above.`;
                     </div>
                   </div>
                 )}
-                <div dangerouslySetInnerHTML={{ __html: message.text }} />
+                <div 
+                  dangerouslySetInnerHTML={{ 
+                    __html: message.isUser ? message.text : formatBotResponse(message.text)
+                  }} 
+                />
                 <span className="text-xs opacity-50 mt-1 block">
                   {message.timestamp}
                 </span>
@@ -1150,7 +1802,7 @@ Respond as BOIPARA AI Assistant using the real-time database data above.`;
             {/* Typing Indicator */}
             {isTyping && (
               <div className="text-xs text-[#d4a017] italic animate-pulse flex items-center gap-2">
-                📚 Boipara AI is thinking...
+                📚 Genio AI is thinking...
                 <div className="flex gap-1">
                   <div className="w-1 h-1 bg-[#d4a017] rounded-full animate-bounce"></div>
                   <div className="w-1 h-1 bg-[#d4a017] rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
