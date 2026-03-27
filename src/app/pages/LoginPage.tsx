@@ -160,8 +160,6 @@ export function LoginPage() {
         throw new Error('Failed to load Google SDK');
       }
       
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
       const googleUser = await signInWithGooglePopup();
       
       const authData = {
